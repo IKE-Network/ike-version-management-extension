@@ -1,0 +1,21 @@
+# release-cascade.yaml — ike-version-management-extension's edges
+# in the IKE release cascade (IKE-Network/ike-issues#420, #460,
+# #470).
+#
+# Standalone Tier 0 artifact, like ike-workspace-extension: no
+# cascade-tracked upstream. Inherits ike-base-parent via <parent>,
+# but parent-inheritance bumps are not yet cascade-tracked
+# (IKE-Network/ike-issues#462). Asserting head positively so a
+# forgotten upstream edge would be a manifest error, not a silent
+# omission.
+
+schema: 1
+
+head: true
+
+# No downstream consumers in the foundation cascade. The extension
+# is opt-in via .mvn/extensions.xml; foundation projects that
+# register it (workspace-example, ike-platform's plugin workspace)
+# do so as a tooling choice, not as a cascade dependency. When
+# the cascade walker grows extension-registration awareness, this
+# section will list those consumers.

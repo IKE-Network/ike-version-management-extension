@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IKE Network — Version Management Maven Extension
+  ════════════════════════════════════════════════
+
+  A Maven 4 build extension that implements the IKE GA·convention
+  for version-property naming (IKE-Network/ike-issues#470, #471,
+  #472). Hooks ModelTransformer to:
+
+    1. Inject ${G·A} ↔ legacy-short-name property indirections
+       at file-model stage, sourced from a bundled alias manifest
+       (META-INF/ike/version-aliases.yaml) and an optional
+       per-project override (.mvn/version-aliases.yaml).
+    2. Fail the build at effective-model stage with an actionable
+       message when a <dependency>/<plugin> <version> reference
+       points at an undeclared ${G·A} property.
+    3. Detect ${G.A} typos (regular dots where the middle dot
+       was meant) by checking whether the dot-to-middle-dot
+       substitution resolves; emit a "did you mean ${G·A}?" hint.
+
+  See IKE-VERSIONS.md (in ike-build-standards) for the convention.
+
+  Standalone Tier 0 artifact, parent ike-base-parent. Versioned
+  independently. Stable contract: do exactly these three things,
+  never grow scope.
+
+  Build:    mvn install
+  Artifact: network.ike.tooling:ike-version-management-extension:<version>
+-->
+<project xmlns="http://maven.apache.org/POM/4.1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0
+                             http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
+
+    <parent>
+        <groupId>network.ike</groupId>
+        <artifactId>ike-base-parent</artifactId>
+        <version>6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>network.ike.tooling</groupId>
+    <artifactId>ike-version-management-extension</artifactId>
+    <version>1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>IKE Version Management Extension</name>
+    <description>
+        Maven 4 build extension that implements the IKE GA·convention
+        for version-property naming: ${groupId·artifactId} (U+00B7
+        MIDDLE DOT). Injects alias indirections from a bundled
+        manifest, fails fast on undeclared ${G·A} references, and
+        detects ${G.A} typos with a corrective hint. See
+        IKE-Network/ike-issues#470, #472.
+    </description>
+    <url>https://github.com/IKE-Network/ike-version-management-extension</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>IKE Network</name>
+        <url>https://ike.network</url>
+    </organization>
+
+    <distributionManagement>
+        <site>
+            <id>ike-site</id>
+            <url>https://ike.network/${project.artifactId}/</url>
+        </site>
+    </distributionManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.deploy.skip>false</maven.deploy.skip>
+        <maven.install.skip>false</maven.install.skip>
+        <!-- Pin to the Maven 4 line the IKE workspaces ship. -->
+        <maven.version>4.0.0-rc-5</maven.version>
+    </properties>
+
+    <!-- Maven 4 API dependencies are compile-scope (not provided), per
+         the maveniverse/mason canonical wiring. The annotation
+         processor in maven-api-di emits META-INF/maven/o.a.m.a.di.Inject
+         when <proc>full</proc> is set on the compiler. -->
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-api-spi</artifactId>
+            <version>${maven.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-api-core</artifactId>
+            <version>${maven.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-api-model</artifactId>
+            <version>${maven.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-api-di</artifactId>
+            <version>${maven.version}</version>
+        </dependency>
+    </dependencies>
+
+    <!--
+        No in-repo tests. The transformer's behavior is exercised by
+        integration tests in a consuming reactor (workspace-example
+        is the obvious primary target). Keeping this artifact pure-
+        library lets ike-base-parent be a clean Tier 0 inheritance
+        with no test-stack baggage.
+    -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
+                <configuration>
+                    <release>21</release>
+                    <!-- maven-api-di's DiIndexProcessor emits
+                         META-INF/maven/org.apache.maven.api.di.Inject,
+                         which is how Maven 4 discovers our @Named bean.
+                         <proc>full</proc> lets Maven scan the classpath
+                         for processors (maven-api-di brings the
+                         processor itself in via its jar). -->
+                    <proc>full</proc>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
