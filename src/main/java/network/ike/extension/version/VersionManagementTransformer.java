@@ -1,5 +1,8 @@
 package network.ike.extension.version;
 
+import network.ike.support.ConstantBackedEnum;
+import network.ike.support.ReleasePolicy;
+
 import org.apache.maven.api.di.Named;
 import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Dependency;
@@ -66,11 +69,23 @@ import java.util.regex.Pattern;
  * effective model. If so, the build fails with a "did you mean
  * {@code ${G·A}}?" hint pointing at the middle-dot replacement.
  *
- * <h2>Stable contract</h2>
+ * <h3>4. Release-policy validation (effective-model stage)</h3>
  *
- * <p>This transformer does exactly the three things above. It
- * never grows scope. Future version-management features ship as
- * separate extensions or as goals in {@code ike-workspace-maven-plugin}.
+ * <p>A project declares how it responds to an upstream release with
+ * a {@code ${groupId·artifactId·policy}} property whose value is a
+ * {@link ReleasePolicy} rung. For every effective-model property
+ * whose name ends in {@code ·policy}, the transformer checks that the
+ * value is one of {@code notify}, {@code verify}, {@code propose},
+ * {@code integrate}, {@code release}; an unrecognized value fails the
+ * build with the valid set and a closest-match "did you mean" hint.
+ *
+ * <h2>Scope</h2>
+ *
+ * <p>The transformer enforces the IKE version and release-policy
+ * conventions. It grew from three rules to four when release-policy
+ * validation was added for the release-cascade redesign
+ * (IKE-Network/ike-issues#498); further convention checks are added
+ * here as the conventions themselves grow.
  */
 @Named("ike-version-management")
 @Singleton
@@ -81,6 +96,9 @@ public class VersionManagementTransformer implements ModelTransformer {
 
     /** The IKE GA·convention separator: U+00B7 MIDDLE DOT. */
     private static final char SEPARATOR = '·';
+
+    /** Property-name suffix marking a release-policy declaration. */
+    private static final String POLICY_SUFFIX = SEPARATOR + "policy";
 
     /**
      * Path-tail marker identifying the workspace that registered
@@ -127,18 +145,18 @@ public class VersionManagementTransformer implements ModelTransformer {
     }
 
     /**
-     * Scans the effective model for unresolved {@code ${...}}
-     * version references and fails the build with an actionable
-     * message if any canonical pin is undeclared or any
-     * dot-typo'd reference would resolve under the middle-dot
-     * substitution.
+     * Scans the effective model for convention violations —
+     * unresolved {@code ${...}} version references and unrecognized
+     * release-policy values — and fails the build with an actionable
+     * message if any are found.
      *
      * @param model the effective Maven model (post-inheritance,
      *              post-interpolation)
      * @return the model unchanged
      * @throws ModelTransformerException if an unresolved
-     *                                    {@code ${G·A}} or a
-     *                                    {@code ${G.A}} typo is
+     *                                    {@code ${G·A}}, a
+     *                                    {@code ${G.A}} typo, or an
+     *                                    invalid release policy is
      *                                    detected
      */
     @Override
@@ -163,6 +181,7 @@ public class VersionManagementTransformer implements ModelTransformer {
                 scanPlugins(pm.getPlugins(), "build.pluginManagement.plugin", props, violations);
             }
         }
+        scanPolicyProperties(props, violations);
         if (violations.isEmpty()) {
             return model;
         }
@@ -269,15 +288,101 @@ public class VersionManagementTransformer implements ModelTransformer {
         return null;
     }
 
+    /**
+     * Scans effective-model properties for release-policy
+     * declarations — names ending in {@code ·policy} — and records a
+     * violation for any whose value is not a {@link ReleasePolicy}
+     * rung.
+     */
+    private static void scanPolicyProperties(Map<String, String> props, List<Violation> out) {
+        for (Map.Entry<String, String> entry : props.entrySet()) {
+            String key = entry.getKey();
+            if (key == null || !key.endsWith(POLICY_SUFFIX)) {
+                continue;
+            }
+            String value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            value = value.trim();
+            if (value.isEmpty() || value.contains("${")) {
+                // Empty, or an unresolved reference — not a literal
+                // policy value; leave it to other diagnostics.
+                continue;
+            }
+            if (ConstantBackedEnum.fromConstant(ReleasePolicy.class, value).isEmpty()) {
+                out.add(new Violation(ViolationKind.INVALID_POLICY, value,
+                        "property", key, closestPolicy(value)));
+            }
+        }
+    }
+
+    /**
+     * The closest {@link ReleasePolicy} rung to {@code value} by edit
+     * distance, or {@code null} when nothing is close enough to be a
+     * plausible typo.
+     */
+    private static String closestPolicy(String value) {
+        String best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (ReleasePolicy policy : ReleasePolicy.values()) {
+            int distance = levenshtein(value, policy.constant());
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = policy.constant();
+            }
+        }
+        return bestDistance <= 3 ? best : null;
+    }
+
+    /** The comma-separated list of valid release-policy rungs. */
+    private static String validPolicyList() {
+        StringBuilder sb = new StringBuilder();
+        for (ReleasePolicy policy : ReleasePolicy.values()) {
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append(policy.constant());
+        }
+        return sb.toString();
+    }
+
+    /** Standard Levenshtein edit distance between two strings. */
+    private static int levenshtein(String a, String b) {
+        int[] previous = new int[b.length() + 1];
+        int[] current = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) {
+            previous[j] = j;
+        }
+        for (int i = 1; i <= a.length(); i++) {
+            current[0] = i;
+            for (int j = 1; j <= b.length(); j++) {
+                int substitute = previous[j - 1]
+                        + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1);
+                int delete = previous[j] + 1;
+                int insert = current[j - 1] + 1;
+                current[j] = Math.min(substitute, Math.min(delete, insert));
+            }
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+        return previous[b.length()];
+    }
+
     private static String buildErrorMessage(Model model, List<Violation> violations) {
         Path projectDir = projectDirOf(model);
         StringBuilder sb = new StringBuilder();
         sb.append("ike-version-management-extension: ")
           .append(violations.size())
-          .append(violations.size() == 1 ? " version-pin violation" : " version-pin violations")
+          .append(violations.size() == 1 ? " convention violation" : " convention violations")
           .append(" in ").append(describe(model)).append(":\n");
         for (Violation v : violations) {
-            sb.append("\n  [").append(v.kind == ViolationKind.DOT_TYPO ? "TYPO" : "UNRESOLVED").append("] ")
+            sb.append("\n  [").append(switch (v.kind) {
+                case UNRESOLVED_CANONICAL -> "UNRESOLVED";
+                case DOT_TYPO -> "TYPO";
+                case INVALID_POLICY -> "INVALID-POLICY";
+            }).append("] ")
               .append(v.section).append(" ").append(v.coords).append("\n");
             switch (v.kind) {
                 case UNRESOLVED_CANONICAL -> {
@@ -291,6 +396,15 @@ public class VersionManagementTransformer implements ModelTransformer {
                       .append("    Did you mean ${").append(v.suggestion).append("}? (middle dot, U+00B7)\n")
                       .append("    Typed dots ARE valid in property names; only · signals the\n")
                       .append("    IKE GA convention. See IKE-VERSIONS.md.\n");
+                }
+                case INVALID_POLICY -> {
+                    sb.append("    Value \"").append(v.name).append("\" is not a release policy.\n");
+                    if (v.suggestion != null) {
+                        sb.append("    Did you mean \"").append(v.suggestion).append("\"?\n");
+                    }
+                    sb.append("    Valid release policies: ").append(validPolicyList()).append(".\n")
+                      .append("    A ${groupId·artifactId·policy} property declares how this\n")
+                      .append("    project responds when that upstream is released.\n");
                 }
             }
         }
@@ -340,7 +454,8 @@ public class VersionManagementTransformer implements ModelTransformer {
 
     private enum ViolationKind {
         UNRESOLVED_CANONICAL,
-        DOT_TYPO
+        DOT_TYPO,
+        INVALID_POLICY
     }
 
     private static final class Violation {

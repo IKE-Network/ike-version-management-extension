@@ -17,12 +17,15 @@
     3. Detect ${G.A} typos (regular dots where the middle dot
        was meant) by checking whether the dot-to-middle-dot
        substitution resolves; emit a "did you mean ${G·A}?" hint.
+    4. Validate ${G·A·policy} release-policy property values
+       against the ReleasePolicy ladder, with a closest-match
+       "did you mean" hint (IKE-Network/ike-issues#498).
 
   See IKE-VERSIONS.md (in ike-build-standards) for the convention.
 
   Standalone Tier 0 artifact, parent ike-base-parent. Versioned
-  independently. Stable contract: do exactly these three things,
-  never grow scope.
+  independently. It enforces the IKE version and release-policy
+  conventions, and depends only on ike-java-support.
 
   Build:    mvn install
   Artifact: network.ike.tooling:ike-version-management-extension:<version>
@@ -109,6 +112,18 @@
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-api-di</artifactId>
             <version>${maven.version}</version>
+        </dependency>
+
+        <!-- IKE shared value types: ReleasePolicy and the
+             ConstantBackedEnum contract, used by the release-policy
+             validation rule. Compile scope — it loads into the
+             extension's classloader. Literal version until
+             ike-java-support is released and ike-base-parent carries
+             a canonical pin. See IKE-Network/ike-issues#498. -->
+        <dependency>
+            <groupId>network.ike</groupId>
+            <artifactId>ike-java-support</artifactId>
+            <version>1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
