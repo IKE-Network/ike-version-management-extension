@@ -1,7 +1,7 @@
 package network.ike.extension.version;
 
-import network.ike.support.ConstantBackedEnum;
-import network.ike.support.ReleasePolicy;
+import network.ike.support.enums.ConstantBackedEnum;
+import network.ike.support.enums.ReleasePolicy;
 
 import org.apache.maven.api.di.Named;
 import org.apache.maven.api.di.Singleton;
@@ -295,6 +295,7 @@ public class VersionManagementTransformer implements ModelTransformer {
      * rung.
      */
     private static void scanPolicyProperties(Map<String, String> props, List<Violation> out) {
+        Map<String, ReleasePolicy> policies = ConstantBackedEnum.index(ReleasePolicy.class);
         for (Map.Entry<String, String> entry : props.entrySet()) {
             String key = entry.getKey();
             if (key == null || !key.endsWith(POLICY_SUFFIX)) {
@@ -310,7 +311,7 @@ public class VersionManagementTransformer implements ModelTransformer {
                 // policy value; leave it to other diagnostics.
                 continue;
             }
-            if (ConstantBackedEnum.fromConstant(ReleasePolicy.class, value).isEmpty()) {
+            if (!policies.containsKey(value)) {
                 out.add(new Violation(ViolationKind.INVALID_POLICY, value,
                         "property", key, closestPolicy(value)));
             }
@@ -326,10 +327,10 @@ public class VersionManagementTransformer implements ModelTransformer {
         String best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (ReleasePolicy policy : ReleasePolicy.values()) {
-            int distance = levenshtein(value, policy.constant());
+            int distance = levenshtein(value, policy.literalName());
             if (distance < bestDistance) {
                 bestDistance = distance;
-                best = policy.constant();
+                best = policy.literalName();
             }
         }
         return bestDistance <= 3 ? best : null;
@@ -342,7 +343,7 @@ public class VersionManagementTransformer implements ModelTransformer {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
-            sb.append(policy.constant());
+            sb.append(policy.literalName());
         }
         return sb.toString();
     }
