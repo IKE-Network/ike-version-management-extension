@@ -10,6 +10,7 @@ import org.apache.maven.api.model.DependencyManagement;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.model.Plugin;
 import org.apache.maven.api.model.PluginManagement;
+import org.apache.maven.api.model.Scm;
 import org.apache.maven.api.spi.ModelTransformer;
 import org.apache.maven.api.spi.ModelTransformerException;
 
@@ -79,13 +80,26 @@ import java.util.regex.Pattern;
  * {@code integrate}, {@code release}; an unrecognized value fails the
  * build with the valid set and a closest-match "did you mean" hint.
  *
+ * <h3>5. SCM presence (effective-model stage)</h3>
+ *
+ * <p>The release cascade keys repositories by {@code <scm>}: every
+ * coordinate a reactor produces inherits one {@code <scm>}, so to map
+ * a consumed coordinate back to its producing repository the cascade
+ * resolves the coordinate's POM and reads its inherited
+ * {@code <scm>}. If a project has no {@code <scm>} with a
+ * {@code <url>} or {@code <connection>} — declared or inherited —
+ * there is no join key, and the cascade cannot place it on the graph.
+ * The build fails with a message that points at the missing block.
+ * See IKE-Network/ike-issues#496.
+ *
  * <h2>Scope</h2>
  *
  * <p>The transformer enforces the IKE version and release-policy
- * conventions. It grew from three rules to four when release-policy
- * validation was added for the release-cascade redesign
- * (IKE-Network/ike-issues#498); further convention checks are added
- * here as the conventions themselves grow.
+ * conventions. It grew from three rules to five when release-policy
+ * validation (#498) and the cascade's {@code <scm>}-presence
+ * requirement (#496) were added for the release-cascade redesign;
+ * further convention checks are added here as the conventions
+ * themselves grow.
  */
 @Named("ike-version-management")
 @Singleton
@@ -146,17 +160,18 @@ public class VersionManagementTransformer implements ModelTransformer {
 
     /**
      * Scans the effective model for convention violations —
-     * unresolved {@code ${...}} version references and unrecognized
-     * release-policy values — and fails the build with an actionable
-     * message if any are found.
+     * unresolved {@code ${...}} version references, unrecognized
+     * release-policy values, and missing {@code <scm>} — and fails
+     * the build with an actionable message if any are found.
      *
      * @param model the effective Maven model (post-inheritance,
      *              post-interpolation)
      * @return the model unchanged
      * @throws ModelTransformerException if an unresolved
      *                                    {@code ${G·A}}, a
-     *                                    {@code ${G.A}} typo, or an
-     *                                    invalid release policy is
+     *                                    {@code ${G.A}} typo, an
+     *                                    invalid release policy, or
+     *                                    a missing {@code <scm>} is
      *                                    detected
      */
     @Override
@@ -182,6 +197,7 @@ public class VersionManagementTransformer implements ModelTransformer {
             }
         }
         scanPolicyProperties(props, violations);
+        scanScm(model, violations);
         if (violations.isEmpty()) {
             return model;
         }
@@ -319,6 +335,24 @@ public class VersionManagementTransformer implements ModelTransformer {
     }
 
     /**
+     * Records a violation if the effective model has no {@code <scm>}
+     * with at least a {@code <url>} or {@code <connection>} —
+     * declared locally or inherited. The cascade's coordinate-to-
+     * repository join key depends on every IKE POM resolving a valid
+     * {@code <scm>}; see IKE-Network/ike-issues#496.
+     */
+    private static void scanScm(Model model, List<Violation> out) {
+        Scm scm = model.getScm();
+        boolean hasIdentity = scm != null
+                && ((scm.getUrl() != null && !scm.getUrl().isBlank())
+                    || (scm.getConnection() != null && !scm.getConnection().isBlank()));
+        if (!hasIdentity) {
+            out.add(new Violation(ViolationKind.MISSING_SCM, null, "project",
+                    describe(model), null));
+        }
+    }
+
+    /**
      * The closest {@link ReleasePolicy} rung to {@code value} by edit
      * distance, or {@code null} when nothing is close enough to be a
      * plausible typo.
@@ -383,6 +417,7 @@ public class VersionManagementTransformer implements ModelTransformer {
                 case UNRESOLVED_CANONICAL -> "UNRESOLVED";
                 case DOT_TYPO -> "TYPO";
                 case INVALID_POLICY -> "INVALID-POLICY";
+                case MISSING_SCM -> "MISSING-SCM";
             }).append("] ")
               .append(v.section).append(" ").append(v.coords).append("\n");
             switch (v.kind) {
@@ -406,6 +441,16 @@ public class VersionManagementTransformer implements ModelTransformer {
                     sb.append("    Valid release policies: ").append(validPolicyList()).append(".\n")
                       .append("    A ${groupId·artifactId·policy} property declares how this\n")
                       .append("    project responds when that upstream is released.\n");
+                }
+                case MISSING_SCM -> {
+                    sb.append("    Project has no <scm> with a <url> or <connection>.\n")
+                      .append("    The release cascade keys repositories by <scm> to map\n")
+                      .append("    consumed coordinates back to the producing repository:\n")
+                      .append("    every coordinate a reactor produces inherits one <scm>,\n")
+                      .append("    so the cascade reads it to identify the repo to release.\n")
+                      .append("    Declare or inherit an <scm> block with at least a\n")
+                      .append("    <url> (web URL) or <connection> (scm:git:... URL) set.\n")
+                      .append("    See IKE-Network/ike-issues#496.\n");
                 }
             }
         }
@@ -456,7 +501,8 @@ public class VersionManagementTransformer implements ModelTransformer {
     private enum ViolationKind {
         UNRESOLVED_CANONICAL,
         DOT_TYPO,
-        INVALID_POLICY
+        INVALID_POLICY,
+        MISSING_SCM
     }
 
     private static final class Violation {
