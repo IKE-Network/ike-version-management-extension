@@ -80,17 +80,23 @@ import java.util.regex.Pattern;
  * {@code integrate}, {@code release}; an unrecognized value fails the
  * build with the valid set and a closest-match "did you mean" hint.
  *
- * <h3>5. SCM presence (effective-model stage)</h3>
+ * <h3>5. Local SCM declaration (file-model stage)</h3>
  *
  * <p>The release cascade keys repositories by {@code <scm>}: every
- * coordinate a reactor produces inherits one {@code <scm>}, so to map
- * a consumed coordinate back to its producing repository the cascade
- * resolves the coordinate's POM and reads its inherited
- * {@code <scm>}. If a project has no {@code <scm>} with a
- * {@code <url>} or {@code <connection>} — declared or inherited —
- * there is no join key, and the cascade cannot place it on the graph.
- * The build fails with a message that points at the missing block.
- * See IKE-Network/ike-issues#496.
+ * coordinate a reactor produces shares the reactor-root's
+ * {@code <scm>}, so to map a consumed coordinate back to its
+ * producing repository the cascade resolves the coordinate's POM and
+ * reads its {@code <scm>}. Maven's default {@code <scm>} inheritance
+ * appends the child's {@code <artifactId>} to the parent's URL
+ * (yielding URLs like {@code .../ike-base-parent/<child>} that point
+ * at no real repository) unless every URL in the parent carries
+ * {@code child.scm.*.inherit.append.path="false"}. The IKE convention
+ * sidesteps the inheritance trap entirely: every IKE POM declares
+ * its own {@code <scm>} locally, with a {@code <url>} or
+ * {@code <connection>} that names the actual repository. The check
+ * runs at the file-model stage — before parent merging — so
+ * inheritance from {@code ike-base-parent} cannot mask an absent
+ * local block. See IKE-Network/ike-issues#496.
  *
  * <h2>Scope</h2>
  *
@@ -126,20 +132,30 @@ public class VersionManagementTransformer implements ModelTransformer {
     public VersionManagementTransformer() {}
 
     /**
-     * Injects alias indirections at file-model stage. See class
-     * Javadoc for the rules.
+     * Injects alias indirections and enforces the local-{@code <scm>}
+     * requirement. See class Javadoc for the rules.
      *
-     * @param model the file-stage parsed Maven model
+     * @param model the file-stage parsed Maven model — the raw POM
+     *              before parent merging, so {@link Model#getScm()}
+     *              returns the locally-declared block (or {@code null})
+     *              rather than the inherited one
      * @return the (possibly augmented) model — same instance when
      *         no aliases needed injection
-     * @throws ModelTransformerException never thrown at this stage;
-     *                                    declared for SPI conformance
+     * @throws ModelTransformerException if the file-stage model
+     *                                    declares no local {@code <scm>}
+     *                                    with a {@code <url>} or
+     *                                    {@code <connection>}
      */
     @Override
     public Model transformFileModel(Model model) throws ModelTransformerException {
         Path projectDir = projectDirOf(model);
         if (!isInOurWorkspace(projectDir)) {
             return model;
+        }
+        List<Violation> violations = new ArrayList<>();
+        scanScm(model, violations);
+        if (!violations.isEmpty()) {
+            throw new ModelTransformerException(buildErrorMessage(model, violations));
         }
         AliasManifest manifest = ManifestLoader.load(projectDir);
         Map<String, String> props = model.getProperties();
@@ -160,18 +176,19 @@ public class VersionManagementTransformer implements ModelTransformer {
 
     /**
      * Scans the effective model for convention violations —
-     * unresolved {@code ${...}} version references, unrecognized
-     * release-policy values, and missing {@code <scm>} — and fails
-     * the build with an actionable message if any are found.
+     * unresolved {@code ${...}} version references and unrecognized
+     * release-policy values — and fails the build with an actionable
+     * message if any are found. The {@code <scm>}-presence rule
+     * runs at the file-model stage; see
+     * {@link #transformFileModel(Model)}.
      *
      * @param model the effective Maven model (post-inheritance,
      *              post-interpolation)
      * @return the model unchanged
      * @throws ModelTransformerException if an unresolved
      *                                    {@code ${G·A}}, a
-     *                                    {@code ${G.A}} typo, an
-     *                                    invalid release policy, or
-     *                                    a missing {@code <scm>} is
+     *                                    {@code ${G.A}} typo, or an
+     *                                    invalid release policy is
      *                                    detected
      */
     @Override
@@ -197,7 +214,6 @@ public class VersionManagementTransformer implements ModelTransformer {
             }
         }
         scanPolicyProperties(props, violations);
-        scanScm(model, violations);
         if (violations.isEmpty()) {
             return model;
         }
@@ -335,18 +351,25 @@ public class VersionManagementTransformer implements ModelTransformer {
     }
 
     /**
-     * Records a violation if the effective model has no {@code <scm>}
-     * with at least a {@code <url>} or {@code <connection>} —
-     * declared locally or inherited. The cascade's coordinate-to-
-     * repository join key depends on every IKE POM resolving a valid
-     * {@code <scm>}; see IKE-Network/ike-issues#496.
+     * Records a violation if the file-stage model — the raw POM
+     * before parent merging — has no locally-declared {@code <scm>}
+     * with at least a {@code <url>} or {@code <connection>}.
+     *
+     * <p>Inheritance is deliberately not consulted: Maven's default
+     * {@code <scm>} inheritance appends the child's {@code artifactId}
+     * to the parent's URL, so a child that "inherits" {@code <scm>}
+     * from {@code ike-base-parent} resolves to a non-existent URL
+     * like {@code .../ike-base-parent/<child>}. The cascade's
+     * coordinate-to-repository join key requires the {@code <scm>}
+     * URL to name the real repository, which only a local
+     * declaration guarantees. See IKE-Network/ike-issues#496.
      */
     private static void scanScm(Model model, List<Violation> out) {
         Scm scm = model.getScm();
-        boolean hasIdentity = scm != null
+        boolean hasLocalIdentity = scm != null
                 && ((scm.getUrl() != null && !scm.getUrl().isBlank())
                     || (scm.getConnection() != null && !scm.getConnection().isBlank()));
-        if (!hasIdentity) {
+        if (!hasLocalIdentity) {
             out.add(new Violation(ViolationKind.MISSING_SCM, null, "project",
                     describe(model), null));
         }
@@ -443,13 +466,15 @@ public class VersionManagementTransformer implements ModelTransformer {
                       .append("    project responds when that upstream is released.\n");
                 }
                 case MISSING_SCM -> {
-                    sb.append("    Project has no <scm> with a <url> or <connection>.\n")
+                    sb.append("    Project declares no local <scm> with a <url> or <connection>.\n")
                       .append("    The release cascade keys repositories by <scm> to map\n")
-                      .append("    consumed coordinates back to the producing repository:\n")
-                      .append("    every coordinate a reactor produces inherits one <scm>,\n")
-                      .append("    so the cascade reads it to identify the repo to release.\n")
-                      .append("    Declare or inherit an <scm> block with at least a\n")
-                      .append("    <url> (web URL) or <connection> (scm:git:... URL) set.\n")
+                      .append("    consumed coordinates back to the producing repository.\n")
+                      .append("    Inheriting <scm> from ike-base-parent is NOT enough: Maven's\n")
+                      .append("    default <scm> inheritance appends this project's artifactId\n")
+                      .append("    to the parent URL, yielding a non-existent path like\n")
+                      .append("    .../ike-base-parent/<artifactId>. Every IKE POM must declare\n")
+                      .append("    its own <scm> block locally, with at least a <url> (web URL)\n")
+                      .append("    or <connection> (scm:git:... URL) that names the actual repo.\n")
                       .append("    See IKE-Network/ike-issues#496.\n");
                 }
             }
