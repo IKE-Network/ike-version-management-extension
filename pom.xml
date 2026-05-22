@@ -73,6 +73,19 @@
         <url>https://ike.network</url>
     </organization>
 
+    <!-- Locally declared so the cascade's coordinate-to-repository
+         lookup resolves a real repo URL, not the artifactId-appended
+         path Maven would otherwise inherit from ike-base-parent.
+         This artifact is also the host of the MISSING_SCM lint that
+         enforces the rule; it must pass its own check. See
+         IKE-Network/ike-issues#496. -->
+    <scm>
+        <connection>scm:git:https://github.com/IKE-Network/ike-version-management-extension.git</connection>
+        <developerConnection>scm:git:git@github.com:IKE-Network/ike-version-management-extension.git</developerConnection>
+        <url>https://github.com/IKE-Network/ike-version-management-extension</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <distributionManagement>
         <site>
             <id>ike-site</id>
