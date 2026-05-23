@@ -436,30 +436,30 @@ public class VersionManagementTransformer implements ModelTransformer {
           .append(violations.size() == 1 ? " convention violation" : " convention violations")
           .append(" in ").append(describe(model)).append(":\n");
         for (Violation v : violations) {
-            sb.append("\n  [").append(switch (v.kind) {
+            sb.append("\n  [").append(switch (v.kind()) {
                 case UNRESOLVED_CANONICAL -> "UNRESOLVED";
                 case DOT_TYPO -> "TYPO";
                 case INVALID_POLICY -> "INVALID-POLICY";
                 case MISSING_SCM -> "MISSING-SCM";
             }).append("] ")
-              .append(v.section).append(" ").append(v.coords).append("\n");
-            switch (v.kind) {
+              .append(v.section()).append(" ").append(v.coords()).append("\n");
+            switch (v.kind()) {
                 case UNRESOLVED_CANONICAL -> {
-                    sb.append("    Property ${").append(v.name).append("} is not declared.\n")
+                    sb.append("    Property ${").append(v.name()).append("} is not declared.\n")
                       .append("    The IKE convention requires every ${groupId·artifactId} (U+00B7)\n")
                       .append("    property to be defined either locally, in an inherited parent\n")
                       .append("    POM (e.g., ike-base-parent), or in an alias manifest.\n");
                 }
                 case DOT_TYPO -> {
-                    sb.append("    Property ${").append(v.name).append("} is not declared.\n")
-                      .append("    Did you mean ${").append(v.suggestion).append("}? (middle dot, U+00B7)\n")
+                    sb.append("    Property ${").append(v.name()).append("} is not declared.\n")
+                      .append("    Did you mean ${").append(v.suggestion()).append("}? (middle dot, U+00B7)\n")
                       .append("    Typed dots ARE valid in property names; only · signals the\n")
                       .append("    IKE GA convention. See IKE-VERSIONS.md.\n");
                 }
                 case INVALID_POLICY -> {
-                    sb.append("    Value \"").append(v.name).append("\" is not a release policy.\n");
-                    if (v.suggestion != null) {
-                        sb.append("    Did you mean \"").append(v.suggestion).append("\"?\n");
+                    sb.append("    Value \"").append(v.name()).append("\" is not a release policy.\n");
+                    if (v.suggestion() != null) {
+                        sb.append("    Did you mean \"").append(v.suggestion()).append("\"?\n");
                     }
                     sb.append("    Valid release policies: ").append(validPolicyList()).append(".\n")
                       .append("    A ${groupId·artifactId·policy} property declares how this\n")
@@ -530,19 +530,14 @@ public class VersionManagementTransformer implements ModelTransformer {
         MISSING_SCM
     }
 
-    private static final class Violation {
-        final ViolationKind kind;
-        final String name;
-        final String section;
-        final String coords;
-        final String suggestion;
-
-        Violation(ViolationKind kind, String name, String section, String coords, String suggestion) {
-            this.kind = kind;
-            this.name = name;
-            this.section = section;
-            this.coords = coords;
-            this.suggestion = suggestion;
-        }
-    }
+    /**
+     * One convention violation captured during a model scan. The
+     * record reaches {@link #buildErrorMessage} which formats each
+     * one according to its {@link #kind}. The {@code suggestion}
+     * is the "did you mean..." hint where applicable; {@code null}
+     * when no suggestion is available.
+     */
+    private record Violation(ViolationKind kind, String name,
+                              String section, String coords,
+                              String suggestion) {}
 }
