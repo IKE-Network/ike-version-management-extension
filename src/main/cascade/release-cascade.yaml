@@ -15,7 +15,7 @@ head: true
 
 # No downstream consumers in the foundation cascade. The extension
 # is opt-in via .mvn/extensions.xml; foundation projects that
-# register it (workspace-example, ike-platform's plugin workspace)
+# register it (workspace-reactor-example, ike-platform's plugin workspace)
 # do so as a tooling choice, not as a cascade dependency. When
 # the cascade walker grows extension-registration awareness, this
 # section will list those consumers. Asserted positively as a

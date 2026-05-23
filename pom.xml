@@ -142,7 +142,7 @@
 
     <!--
         No in-repo tests. The transformer's behavior is exercised by
-        integration tests in a consuming reactor (workspace-example
+        integration tests in a consuming reactor (workspace-reactor-example
         is the obvious primary target). Keeping this artifact pure-
         library lets ike-base-parent be a clean Tier 0 inheritance
         with no test-stack baggage.
