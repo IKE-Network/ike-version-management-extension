@@ -80,23 +80,31 @@ import java.util.regex.Pattern;
  * {@code integrate}, {@code release}; an unrecognized value fails the
  * build with the valid set and a closest-match "did you mean" hint.
  *
- * <h3>5. Local SCM declaration (file-model stage)</h3>
+ * <h3>5. Reactor-root SCM declaration (file-model stage)</h3>
  *
  * <p>The release cascade keys repositories by {@code <scm>}: every
- * coordinate a reactor produces shares the reactor-root's
- * {@code <scm>}, so to map a consumed coordinate back to its
- * producing repository the cascade resolves the coordinate's POM and
- * reads its {@code <scm>}. Maven's default {@code <scm>} inheritance
- * appends the child's {@code <artifactId>} to the parent's URL
- * (yielding URLs like {@code .../ike-base-parent/<child>} that point
- * at no real repository) unless every URL in the parent carries
- * {@code child.scm.*.inherit.append.path="false"}. The IKE convention
- * sidesteps the inheritance trap entirely: every IKE POM declares
- * its own {@code <scm>} locally, with a {@code <url>} or
- * {@code <connection>} that names the actual repository. The check
- * runs at the file-model stage — before parent merging — so
- * inheritance from {@code ike-base-parent} cannot mask an absent
- * local block. See IKE-Network/ike-issues#496.
+ * coordinate a reactor produces collapses onto a single cascade node
+ * via the reactor-root's {@code <scm>}. To map a consumed coordinate
+ * back to its producing repository, the cascade walks to the POM's
+ * {@code .git} ancestor and reads <em>that</em> POM's {@code <scm>}.
+ * Subproject {@code <scm>} declarations are not consulted — the
+ * git-boundary read in {@code SiblingRepositoryKeyResolver}
+ * (ike-tooling/ike-workspace-model) bypasses Maven's default
+ * {@code <scm>} inheritance, which appends each subproject's
+ * {@code <artifactId>} to the parent URL and produces non-existent
+ * paths like {@code .../ike-base-parent/<child>}.
+ *
+ * <p>The lint therefore fires on a single POM per repository: the one
+ * whose project directory contains the {@code .git} entry. That POM
+ * — the reactor root in IKE convention — must declare a local
+ * {@code <scm>} with a {@code <url>} or {@code <connection>}.
+ * Subproject POMs in the same git repository skip the check and
+ * inherit normally; standalone POMs (no {@code .git} ancestor we can
+ * identify) are outside the lint's domain and pass through. The
+ * check runs at the file-model stage — before parent merging — so
+ * an absent local block on the reactor root cannot be masked by
+ * inheritance from {@code ike-base-parent}. See
+ * IKE-Network/ike-issues#496.
  *
  * <h2>Scope</h2>
  *
@@ -132,8 +140,8 @@ public class VersionManagementTransformer implements ModelTransformer {
     public VersionManagementTransformer() {}
 
     /**
-     * Injects alias indirections and enforces the local-{@code <scm>}
-     * requirement. See class Javadoc for the rules.
+     * Injects alias indirections and enforces the reactor-root
+     * {@code <scm>} requirement. See class Javadoc for the rules.
      *
      * @param model the file-stage parsed Maven model — the raw POM
      *              before parent merging, so {@link Model#getScm()}
@@ -141,9 +149,11 @@ public class VersionManagementTransformer implements ModelTransformer {
      *              rather than the inherited one
      * @return the (possibly augmented) model — same instance when
      *         no aliases needed injection
-     * @throws ModelTransformerException if the file-stage model
-     *                                    declares no local {@code <scm>}
-     *                                    with a {@code <url>} or
+     * @throws ModelTransformerException if this POM sits at the
+     *                                    {@code .git} repository root
+     *                                    and declares no local
+     *                                    {@code <scm>} with a
+     *                                    {@code <url>} or
      *                                    {@code <connection>}
      */
     @Override
@@ -351,20 +361,31 @@ public class VersionManagementTransformer implements ModelTransformer {
     }
 
     /**
-     * Records a violation if the file-stage model — the raw POM
-     * before parent merging — has no locally-declared {@code <scm>}
-     * with at least a {@code <url>} or {@code <connection>}.
+     * Records a violation when the POM at a git repository's root has
+     * no locally-declared {@code <scm>} with at least a {@code <url>}
+     * or {@code <connection>}. Subproject POMs — those whose project
+     * directory is a descendant of the nearest {@code .git} ancestor,
+     * not the ancestor itself — skip the check; the IKE convention
+     * has them inherit {@code <scm>} from the reactor root.
      *
-     * <p>Inheritance is deliberately not consulted: Maven's default
-     * {@code <scm>} inheritance appends the child's {@code artifactId}
-     * to the parent's URL, so a child that "inherits" {@code <scm>}
-     * from {@code ike-base-parent} resolves to a non-existent URL
-     * like {@code .../ike-base-parent/<child>}. The cascade's
-     * coordinate-to-repository join key requires the {@code <scm>}
-     * URL to name the real repository, which only a local
-     * declaration guarantees. See IKE-Network/ike-issues#496.
+     * <p>Inheritance is deliberately not consulted for the root's own
+     * check: Maven's default {@code <scm>} inheritance appends the
+     * child's {@code artifactId} to the parent URL, so a reactor root
+     * that "inherits" {@code <scm>} from {@code ike-base-parent}
+     * resolves to a non-existent path like
+     * {@code .../ike-base-parent/<root-artifactId>}. The cascade's
+     * coordinate-to-repository join key reads the reactor-root POM's
+     * {@code <scm>} directly (see {@code SiblingRepositoryKeyResolver}
+     * in ike-tooling/ike-workspace-model), which only a local
+     * declaration on the root populates. POMs with no identifiable
+     * {@code .git} ancestor — synthetic test models, ad-hoc local
+     * POMs outside any checkout — are outside the lint's domain and
+     * pass through. See IKE-Network/ike-issues#496.
      */
     private static void scanScm(Model model, List<Violation> out) {
+        if (!isAtGitRepoRoot(projectDirOf(model))) {
+            return;
+        }
         Scm scm = model.getScm();
         boolean hasLocalIdentity = scm != null
                 && ((scm.getUrl() != null && !scm.getUrl().isBlank())
@@ -373,6 +394,46 @@ public class VersionManagementTransformer implements ModelTransformer {
             out.add(new Violation(ViolationKind.MISSING_SCM, null, "project",
                     describe(model), null));
         }
+    }
+
+    /**
+     * Whether {@code projectDir} is the root of a git repository — the
+     * directory that contains the {@code .git} entry. Returns
+     * {@code false} when {@code projectDir} is {@code null}, when no
+     * ancestor contains {@code .git}, or when the {@code .git} entry
+     * is in some ancestor (meaning this POM is a subproject within a
+     * larger git checkout).
+     *
+     * <p>The same algorithm is used by
+     * {@code SiblingRepositoryKeyResolver} (ike-tooling/ike-workspace-model)
+     * to derive the cascade's per-repository join key from the
+     * reactor-root POM. Keeping the two in step ensures the lint
+     * fires on exactly the POMs whose {@code <scm>} the cascade
+     * actually reads.
+     */
+    private static boolean isAtGitRepoRoot(Path projectDir) {
+        if (projectDir == null) {
+            return false;
+        }
+        Path gitRoot = gitRoot(projectDir);
+        return gitRoot != null && projectDir.equals(gitRoot);
+    }
+
+    /**
+     * The nearest ancestor directory (including {@code start} itself)
+     * that contains a {@code .git} entry, or {@code null} when none
+     * exists at or above {@code start}. Matches the algorithm in
+     * {@code SiblingRepositoryKeyResolver}.
+     */
+    private static Path gitRoot(Path start) {
+        Path cursor = start;
+        while (cursor != null) {
+            if (Files.exists(cursor.resolve(".git"))) {
+                return cursor;
+            }
+            cursor = cursor.getParent();
+        }
+        return null;
     }
 
     /**
@@ -466,15 +527,19 @@ public class VersionManagementTransformer implements ModelTransformer {
                       .append("    project responds when that upstream is released.\n");
                 }
                 case MISSING_SCM -> {
-                    sb.append("    Project declares no local <scm> with a <url> or <connection>.\n")
-                      .append("    The release cascade keys repositories by <scm> to map\n")
-                      .append("    consumed coordinates back to the producing repository.\n")
+                    sb.append("    Reactor-root POM declares no local <scm> with a <url> or\n")
+                      .append("    <connection>. This POM sits at the git repository root\n")
+                      .append("    (its directory contains the .git entry), so the release\n")
+                      .append("    cascade reads its <scm> as the repository's identity —\n")
+                      .append("    the join key that collapses every coordinate produced in\n")
+                      .append("    this repo onto one cascade node.\n")
                       .append("    Inheriting <scm> from ike-base-parent is NOT enough: Maven's\n")
                       .append("    default <scm> inheritance appends this project's artifactId\n")
                       .append("    to the parent URL, yielding a non-existent path like\n")
-                      .append("    .../ike-base-parent/<artifactId>. Every IKE POM must declare\n")
-                      .append("    its own <scm> block locally, with at least a <url> (web URL)\n")
-                      .append("    or <connection> (scm:git:... URL) that names the actual repo.\n")
+                      .append("    .../ike-base-parent/<artifactId>. Declare a <scm> block on\n")
+                      .append("    this root POM with at least a <url> (web URL) or\n")
+                      .append("    <connection> (scm:git:... URL) naming the actual repository.\n")
+                      .append("    Subprojects inherit and need no local block of their own.\n")
                       .append("    See IKE-Network/ike-issues#496.\n");
                 }
             }
