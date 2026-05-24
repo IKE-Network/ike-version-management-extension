@@ -27,6 +27,6 @@ canonical_url: https://github.com/IKE-Network/ike-version-management-extension/s
 | --- | --- |
 | GroupId | network.ike.tooling |
 | ArtifactId | ike-version-management-extension |
-| Version | 1 |
+| Version | 2 |
 | Type | jar |
 | Java Version | - |

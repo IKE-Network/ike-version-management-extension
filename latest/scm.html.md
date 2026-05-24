@@ -13,7 +13,7 @@ This project uses [Git](https://git-scm.com/)[1] to manage its source code. Inst
 The following is a link to a browsable version of the source repository:
 
 ```
-https://github.com/IKE-Network/ike-base-parent/ike-version-management-extension[3]
+https://github.com/IKE-Network/ike-version-management-extension[3]
 ```
 
 # Anonymous Access
@@ -21,7 +21,7 @@ https://github.com/IKE-Network/ike-base-parent/ike-version-management-extension[
 The source can be checked out anonymously from Git with this command (See [https://git-scm.com/docs/git-clone](https://git-scm.com/docs/git-clone)[4]):
 
 ```
-$ git clone https://github.com/IKE-Network/ike-base-parent.git
+$ git clone https://github.com/IKE-Network/ike-version-management-extension.git
 ```
 
 # Developer Access
@@ -29,7 +29,7 @@ $ git clone https://github.com/IKE-Network/ike-base-parent.git
 Only project developers can access the Git tree via this method (See [https://git-scm.com/docs/git-clone](https://git-scm.com/docs/git-clone)[4]).
 
 ```
-$ git clone git@github.com:IKE-Network/ike-base-parent.git
+$ git clone git@github.com:IKE-Network/ike-version-management-extension.git
 ```
 
 # Access from Behind a Firewall
