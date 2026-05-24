@@ -1,5 +1,10 @@
 # ike-version-management-extension
 
+[![Maven Central](https://img.shields.io/maven-central/v/network.ike.tooling/ike-version-management-extension)](https://central.sonatype.com/artifact/network.ike.tooling/ike-version-management-extension)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Documentation](https://img.shields.io/badge/docs-ike.network%2Fike--version--management--extension-blue)](https://ike.network/ike-version-management-extension/)
+[![IKE Network](https://img.shields.io/badge/IKE-Network-green)](https://ike.network/)
+
 `network.ike.tooling:ike-version-management-extension` — a Maven 4
 build extension implementing the IKE GA·convention for version-
 property naming (`${groupId·artifactId}`, U+00B7 MIDDLE DOT).
