@@ -39,7 +39,7 @@
     <parent>
         <groupId>network.ike</groupId>
         <artifactId>ike-base-parent</artifactId>
-        <version>6</version>
+        <version>9</version>
         <relativePath/>
     </parent>
 
@@ -130,13 +130,13 @@
         <!-- IKE shared value types: ReleasePolicy and the
              ConstantBackedEnum contract, used by the release-policy
              validation rule. Compile scope — it loads into the
-             extension's classloader. Literal version until
-             ike-java-support is released and ike-base-parent carries
-             a canonical pin. See IKE-Network/ike-issues#498. -->
+             extension's classloader. Pinned via the canonical
+             ${G·A} property declared in ike-base-parent
+             (IKE-Network/ike-issues#498). -->
         <dependency>
             <groupId>network.ike</groupId>
             <artifactId>ike-java-support</artifactId>
-            <version>1-SNAPSHOT</version>
+            <version>${network.ike·ike-java-support}</version>
         </dependency>
     </dependencies>
 
