@@ -45,7 +45,7 @@
 
     <groupId>network.ike.tooling</groupId>
     <artifactId>ike-version-management-extension</artifactId>
-    <version>3-SNAPSHOT</version>
+    <version>3</version>
     <packaging>jar</packaging>
 
     <name>IKE Version Management Extension</name>
