@@ -9,19 +9,19 @@
 
 ## Documentation
 
-- [IKE Version Management Extension](https://github.com/IKE-Network/ike-version-management-extension/index.html.md)
+- [IKE Version Management Extension](https://ike.network/ike-version-management-extension/index.html.md)
 
 ## Other
 
 
 ## Reports
 
-- [Project Dependencies](https://github.com/IKE-Network/ike-version-management-extension/dependencies.html.md)
-- [Maven Coordinates](https://github.com/IKE-Network/ike-version-management-extension/dependency-info.html.md)
-- [Project Distribution Management](https://github.com/IKE-Network/ike-version-management-extension/distribution-management.html.md)
-- [Project Licenses](https://github.com/IKE-Network/ike-version-management-extension/licenses.html.md)
-- [Project Plugins](https://github.com/IKE-Network/ike-version-management-extension/plugins.html.md)
-- [Source Code Management](https://github.com/IKE-Network/ike-version-management-extension/scm.html.md)
-- [Project Summary](https://github.com/IKE-Network/ike-version-management-extension/summary.html.md)
-- [Project Team](https://github.com/IKE-Network/ike-version-management-extension/team.html.md)
-- [Project Information](https://github.com/IKE-Network/ike-version-management-extension/project-info.html.md)
+- [Project Dependencies](https://ike.network/ike-version-management-extension/dependencies.html.md)
+- [Maven Coordinates](https://ike.network/ike-version-management-extension/dependency-info.html.md)
+- [Project Distribution Management](https://ike.network/ike-version-management-extension/distribution-management.html.md)
+- [Project Licenses](https://ike.network/ike-version-management-extension/licenses.html.md)
+- [Project Plugins](https://ike.network/ike-version-management-extension/plugins.html.md)
+- [Source Code Management](https://ike.network/ike-version-management-extension/scm.html.md)
+- [Project Summary](https://ike.network/ike-version-management-extension/summary.html.md)
+- [Project Team](https://ike.network/ike-version-management-extension/team.html.md)
+- [Project Information](https://ike.network/ike-version-management-extension/project-info.html.md)
