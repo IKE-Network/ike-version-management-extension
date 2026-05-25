@@ -12,7 +12,7 @@ The following is a list of compile dependencies for this project. These dependen
 
 | GroupId | ArtifactId | Version | Type | Licenses |
 | --- | --- | --- | --- | --- |
-| network.ike | [ike-java-support](https://github.com/IKE-Network/ike-java-support)[1] | 1 | jar | [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
+| network.ike | [ike-java-support](https://ike.network/ike-java-support/)[1] | 3 | jar | [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
 | org.apache.maven | [maven-api-core](https://maven.apache.org/ref/4.0.0-rc-5/api/maven-api-core/)[3] | 4.0.0-rc-5 | jar | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
 | org.apache.maven | [maven-api-di](https://maven.apache.org/ref/4.0.0-rc-5/api/maven-api-di/)[4] | 4.0.0-rc-5 | jar | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
 | org.apache.maven | [maven-api-model](https://maven.apache.org/ref/4.0.0-rc-5/api/maven-api-model/)[5] | 4.0.0-rc-5 | jar | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
@@ -46,7 +46,7 @@ The following is a list of compile dependencies for this project. These dependen
 
 ## [Dependency Tree](#dependency-tree)
 
-- network.ike.tooling:ike-version-management-extension:jar:3 ** 
+- network.ike.tooling:ike-version-management-extension:jar:4 ** 
   
   | IKE Version Management Extension |
   | --- |
@@ -99,11 +99,11 @@ The following is a list of compile dependencies for this project. These dependen
       | Maven 4 API :: Dependency Injection |
       | --- |
       | **Description: **Maven 4 API - Dependency Injection **URL: **[https://maven.apache.org/ref/4.0.0-rc-5/api/maven-api-di/](https://maven.apache.org/ref/4.0.0-rc-5/api/maven-api-di/)[4] **Project Licenses: **[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
-    - network.ike:ike-java-support:jar:1 (compile) ** 
+    - network.ike:ike-java-support:jar:3 (compile) ** 
       
       | IKE Java Support |
       | --- |
-      | **Description: **Shared, enforced-zero-dependency value types for the IKE Network: ConstantBackedEnum for compiler-visible constants, EnumDefinition for controlled-vocabulary enums, and the ReleasePolicy release-cascade policy ladder. See IKE-Network/ike-issues#498. **URL: **[https://github.com/IKE-Network/ike-java-support](https://github.com/IKE-Network/ike-java-support)[1] **Project Licenses: **[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
+      | **Description: **Shared, enforced-zero-dependency value types for the IKE Network: ConstantBackedEnum for compiler-visible constants, EnumDefinition for controlled-vocabulary enums, and the ReleasePolicy release-cascade policy ladder. See IKE-Network/ike-issues#498. **URL: **[https://ike.network/ike-java-support/](https://ike.network/ike-java-support/)[1] **Project Licenses: **[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
     - network.ike:ike-base-parent:zip:site-theme:8 (provided) ** 
       
       | IKE Base Parent |
@@ -121,7 +121,7 @@ The following is a list of compile dependencies for this project. These dependen
 | Total | Size | Entries | Classes | Packages | Java Version | Debug Information |
 | --- | --- | --- | --- | --- | --- | --- |
 | ike-base-parent-8-site-theme.zip | 3.4 kB | - | - | - | - | - |
-| ike-java-support-1.jar | 8.1 kB | 16 | 5 | 2 | 21 | Yes |
+| ike-java-support-3.jar | 8.3 kB | 16 | 5 | 2 | 21 | Yes |
 | maven-api-annotations-4.0.0-rc-5.jar | 13.1 kB | 27 | 12 | 1 | 17 | Yes |
 | maven-api-core-4.0.0-rc-5.jar | 218.3 kB | 257 | 237 | 7 | 17 | Yes |
 | maven-api-di-4.0.0-rc-5.jar | 16.4 kB | 32 | 13 | 2 | 17 | Yes |
@@ -131,6 +131,6 @@ The following is a list of compile dependencies for this project. These dependen
 | maven-api-spi-4.0.0-rc-5.jar | 15.2 kB | 30 | 14 | 1 | 17 | Yes |
 | maven-api-toolchain-4.0.0-rc-5.jar | 41.5 kB | 45 | 30 | 1 | 17 | Yes |
 | maven-api-xml-4.0.0-rc-5.jar | 36.5 kB | 42 | 27 | 1 | 17 | Yes |
-| 11 | 741.5 kB | 721 | 563 | 19 | 21 | 10 |
-| compile: 10 | compile: 738.1 kB | compile: 721 | compile: 563 | compile: 19 | 21 | compile: 10 |
+| 11 | 741.7 kB | 721 | 563 | 19 | 21 | 10 |
+| compile: 10 | compile: 738.3 kB | compile: 721 | compile: 563 | compile: 19 | 21 | compile: 10 |
 | provided: 1 | provided: 3.4 kB | - | - | - | - |

@@ -12,14 +12,14 @@ canonical_url: https://ike.network/ike-version-management-extension/dependency-i
 <dependency>
   <groupId>network.ike.tooling</groupId>
   <artifactId>ike-version-management-extension</artifactId>
-  <version>3</version>
+  <version>4</version>
 </dependency>
 ```
 
 ## [Apache Ivy](#apache-ivy)
 
 ```
-<dependency org="network.ike.tooling" name="ike-version-management-extension" rev="3">
+<dependency org="network.ike.tooling" name="ike-version-management-extension" rev="4">
   <artifact name="ike-version-management-extension" type="jar" />
 </dependency>
 ```
@@ -28,24 +28,24 @@ canonical_url: https://ike.network/ike-version-management-extension/dependency-i
 
 ```
 @Grapes(
-@Grab(group='network.ike.tooling', module='ike-version-management-extension', version='3')
+@Grab(group='network.ike.tooling', module='ike-version-management-extension', version='4')
 )
 ```
 
 ## [Gradle/Grails](#gradle-grails)
 
 ```
-implementation 'network.ike.tooling:ike-version-management-extension:3'
+implementation 'network.ike.tooling:ike-version-management-extension:4'
 ```
 
 ## [Scala SBT](#scala-sbt)
 
 ```
-libraryDependencies += "network.ike.tooling" % "ike-version-management-extension" % "3"
+libraryDependencies += "network.ike.tooling" % "ike-version-management-extension" % "4"
 ```
 
 ## [Leiningen](#leiningen)
 
 ```
-[network.ike.tooling/ike-version-management-extension "3"]
+[network.ike.tooling/ike-version-management-extension "4"]
 ```
