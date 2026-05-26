@@ -11,7 +11,13 @@
 
 schema: 1
 
-head: true
+# Post-#526: base-parent v15+ no longer carries the IKE-foundation
+# pins, so vm-ext declares its own ike-java-support pin and lets
+# the cascade walker advance it on every java-support release.
+upstream:
+  - groupId: network.ike
+    artifactId: ike-java-support
+    url: https://github.com/IKE-Network/ike-java-support.git
 
 # No downstream consumers in the foundation cascade. The extension
 # is opt-in via .mvn/extensions.xml; foundation projects that

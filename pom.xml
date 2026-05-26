@@ -42,7 +42,7 @@
     <parent>
         <groupId>network.ike</groupId>
         <artifactId>ike-base-parent</artifactId>
-        <version>14</version>
+        <version>15</version>
         <relativePath/>
     </parent>
 
@@ -104,11 +104,13 @@
         <maven.install.skip>false</maven.install.skip>
         <!-- Pin to the Maven 4 line the IKE workspaces ship. -->
         <maven.version>4.0.0-rc-5</maven.version>
-        <!-- One-cycle override: vm-ext v8 needs ike-java-support v8's
-             TypedMarker.ALIAS (#526), which base-parent v14's pin
-             (still at v6) pre-dates. Removed when base-parent v15
-             rolls in and pins v8 or later. -->
-        <network.ike__GA__ike-java-support__VERSION>8</network.ike__GA__ike-java-support__VERSION>
+        <!-- Local pin for ike-java-support — base-parent v15+ no
+             longer carries IKE-foundation pins (they moved to
+             ike-parent per #526). Tier-0 leaves like vm-ext that
+             parent directly to base-parent declare their own pin.
+             Bumped per release; the cascade walker advances this
+             via release-cascade.yaml when java-support releases. -->
+        <network.ike__GA__ike-java-support__VERSION>9</network.ike__GA__ike-java-support__VERSION>
     </properties>
 
     <!-- Maven 4 API dependencies are compile-scope (not provided), per
