@@ -20,6 +20,7 @@
 - [Maven Coordinates](https://ike.network/ike-version-management-extension/dependency-info.html.md)
 - [Project Distribution Management](https://ike.network/ike-version-management-extension/distribution-management.html.md)
 - [Project Licenses](https://ike.network/ike-version-management-extension/licenses.html.md)
+- [Project Plugin Management](https://ike.network/ike-version-management-extension/plugin-management.html.md)
 - [Project Plugins](https://ike.network/ike-version-management-extension/plugins.html.md)
 - [Source Code Management](https://ike.network/ike-version-management-extension/scm.html.md)
 - [Project Summary](https://ike.network/ike-version-management-extension/summary.html.md)

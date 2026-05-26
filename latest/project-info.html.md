@@ -17,7 +17,8 @@ This document provides an overview of the various documents and links that are p
 | [Distribution Management](distribution-management.html)[4] | This document provides informations on the distribution management of this project. |
 | [About](index.html)[5] | Maven 4 build extension that implements the IKE GA·convention for version-property naming: ${groupId·artifactId} (U+00B7 MIDDLE DOT). Injects alias indirections from a bundled manifest, fails fast on undeclared ${G·A} references, and detects ${G.A} typos with a corrective hint. See IKE-Network/ike-issues#470, #472. |
 | [Licenses](licenses.html)[6] | This document lists the project license(s). |
-| [Plugins](plugins.html)[7] | This document lists the build plugins and the report plugins used by this project. |
-| [Source Code Management](scm.html)[8] | This document lists ways to access the online source repository. |
-| [Summary](summary.html)[9] | This document lists other related information of this project |
-| [Team](team.html)[10] | This document provides information on the members of this project. These are the individuals who have contributed to the project in one form or another. |
+| [Plugin Management](plugin-management.html)[7] | This document lists the plugins that are defined through pluginManagement. |
+| [Plugins](plugins.html)[8] | This document lists the build plugins and the report plugins used by this project. |
+| [Source Code Management](scm.html)[9] | This document lists ways to access the online source repository. |
+| [Summary](summary.html)[10] | This document lists other related information of this project |
+| [Team](team.html)[11] | This document provides information on the members of this project. These are the individuals who have contributed to the project in one form or another. |
