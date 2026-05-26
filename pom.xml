@@ -99,6 +99,12 @@
         <maven.install.skip>false</maven.install.skip>
         <!-- Pin to the Maven 4 line the IKE workspaces ship. -->
         <maven.version>4.0.0-rc-5</maven.version>
+        <!-- One-cycle override: vm-ext v6 needs ike-java-support v6's
+             TypedMarker enum, which base-parent v13's pin (still at v4)
+             pre-dates. The override is removed when base-parent v14
+             rolls in and pins v6 or later. See
+             IKE-Network/ike-issues#525. -->
+        <network.ike·ike-java-support>6</network.ike·ike-java-support>
     </properties>
 
     <!-- Maven 4 API dependencies are compile-scope (not provided), per

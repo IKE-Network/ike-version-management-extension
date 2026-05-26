@@ -6,8 +6,14 @@
 [![IKE Network](https://img.shields.io/badge/IKE-Network-green)](https://ike.network/)
 
 `network.ike.tooling:ike-version-management-extension` — a Maven 4
-build extension implementing the IKE GA·convention for version-
-property naming (`${groupId·artifactId}`, U+00B7 MIDDLE DOT).
+build extension implementing the IKE typed-marker family for
+version-property naming. A version pin is named
+`${groupId__GA__artifactId__VERSION}`; a release policy for the
+same coordinate is `${groupId__GA__artifactId__POLICY}`. The
+extension also accepts the legacy U+00B7 form (`${groupId·artifactId}`)
+during the transition. See
+[IKE-Network/ike-issues#525](https://github.com/IKE-Network/ike-issues/issues/525)
+for the migration plan.
 
 See [IKE-Network/ike-issues#470](https://github.com/IKE-Network/ike-issues/issues/470)
 for the convention's parent epic and
@@ -29,7 +35,7 @@ mvn install
 ## Stability
 
 This artifact does three things and never grows scope: alias
-injection, hard-fail on unresolved `${G·A}` references, and
-`${G.A}` typo detection. Future version-management features ship
-as separate extensions or as goals in
-`ike-workspace-maven-plugin`.
+injection, hard-fail on unresolved canonical (`${G__GA__A}` /
+`${G·A}`) references, and `${G.A}` typo detection. Future
+version-management features ship as separate extensions or as
+goals in `ike-workspace-maven-plugin`.
