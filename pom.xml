@@ -3,23 +3,26 @@
   IKE Network — Version Management Maven Extension
   ════════════════════════════════════════════════
 
-  A Maven 4 build extension that implements the IKE GA·convention
-  for version-property naming (IKE-Network/ike-issues#470, #471,
-  #472). Hooks ModelTransformer to:
+  A Maven 4 build extension that implements the IKE typed-marker
+  family for version-property naming (IKE-Network/ike-issues#470,
+  #471, #472, #525). Hooks ModelTransformer to:
 
-    1. Inject ${G·A} ↔ legacy-short-name property indirections
-       at file-model stage, sourced from a bundled alias manifest
-       (META-INF/ike/version-aliases.yaml) and an optional
-       per-project override (.mvn/version-aliases.yaml).
+    1. Inject canonical-form ↔ legacy-short-name property
+       indirections at file-model stage, sourced from a bundled
+       alias manifest (META-INF/ike/version-aliases.yaml) and an
+       optional per-project override (.mvn/version-aliases.yaml).
     2. Fail the build at effective-model stage with an actionable
        message when a <dependency>/<plugin> <version> reference
-       points at an undeclared ${G·A} property.
-    3. Detect ${G.A} typos (regular dots where the middle dot
-       was meant) by checking whether the dot-to-middle-dot
-       substitution resolves; emit a "did you mean ${G·A}?" hint.
-    4. Validate ${G·A·policy} release-policy property values
-       against the ReleasePolicy ladder, with a closest-match
-       "did you mean" hint (IKE-Network/ike-issues#498).
+       points at an undeclared ${G__GA__A__VERSION} (or legacy
+       ${G·A}) property.
+    3. Detect ${G.A} typos by checking three candidates per dot
+       position: __GA__ substitution, __GA__ + __VERSION facet,
+       and legacy · fallback. Emit a "did you mean
+       ${G__GA__A__VERSION}?" hint.
+    4. Validate ${G__GA__A__POLICY} (or legacy ${G·A·policy})
+       release-policy property values against the ReleasePolicy
+       ladder, with a closest-match "did you mean" hint
+       (IKE-Network/ike-issues#498).
 
   See IKE-VERSIONS.md (in ike-build-standards) for the convention.
 
@@ -39,7 +42,7 @@
     <parent>
         <groupId>network.ike</groupId>
         <artifactId>ike-base-parent</artifactId>
-        <version>13</version>
+        <version>14</version>
         <relativePath/>
     </parent>
 
@@ -50,12 +53,14 @@
 
     <name>IKE Version Management Extension</name>
     <description>
-        Maven 4 build extension that implements the IKE GA·convention
-        for version-property naming: ${groupId·artifactId} (U+00B7
-        MIDDLE DOT). Injects alias indirections from a bundled
-        manifest, fails fast on undeclared ${G·A} references, and
-        detects ${G.A} typos with a corrective hint. See
-        IKE-Network/ike-issues#470, #472.
+        Maven 4 build extension that implements the IKE typed-marker
+        family for version-property naming:
+        ${groupId__GA__artifactId__VERSION}. Injects alias
+        indirections from a bundled manifest, fails fast on
+        undeclared canonical references, and detects ${G.A} typos
+        with a corrective hint. Accepts the pre-#525 U+00B7 form
+        during the transition. See IKE-Network/ike-issues#470,
+        #472, #525.
     </description>
     <url>https://ike.network/ike-version-management-extension/</url>
     <inceptionYear>2026</inceptionYear>
@@ -99,12 +104,6 @@
         <maven.install.skip>false</maven.install.skip>
         <!-- Pin to the Maven 4 line the IKE workspaces ship. -->
         <maven.version>4.0.0-rc-5</maven.version>
-        <!-- One-cycle override: vm-ext v6 needs ike-java-support v6's
-             TypedMarker enum, which base-parent v13's pin (still at v4)
-             pre-dates. The override is removed when base-parent v14
-             rolls in and pins v6 or later. See
-             IKE-Network/ike-issues#525. -->
-        <network.ike·ike-java-support>6</network.ike·ike-java-support>
     </properties>
 
     <!-- Maven 4 API dependencies are compile-scope (not provided), per
@@ -133,16 +132,15 @@
             <version>${maven.version}</version>
         </dependency>
 
-        <!-- IKE shared value types: ReleasePolicy and the
-             ConstantBackedEnum contract, used by the release-policy
-             validation rule. Compile scope — it loads into the
-             extension's classloader. Pinned via the canonical
-             ${G·A} property declared in ike-base-parent
-             (IKE-Network/ike-issues#498). -->
+        <!-- IKE shared value types: ReleasePolicy, ConstantBackedEnum,
+             TypedMarker. Compile scope — it loads into the
+             extension's classloader. Pinned via the typed-marker
+             property declared in ike-base-parent v14+
+             (IKE-Network/ike-issues#498, #525). -->
         <dependency>
             <groupId>network.ike</groupId>
             <artifactId>ike-java-support</artifactId>
-            <version>${network.ike·ike-java-support}</version>
+            <version>${network.ike__GA__ike-java-support__VERSION}</version>
         </dependency>
     </dependencies>
 
