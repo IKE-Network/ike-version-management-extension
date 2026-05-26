@@ -57,17 +57,21 @@ import java.util.regex.Pattern;
  *
  * <h3>1. Alias injection (file-model stage)</h3>
  *
- * <p>For each alias {@code short → canonical} in the merged
- * {@link ManifestLoader manifest}: if the consumer's POM declares
- * {@code short} but not {@code canonical}, inject
- * {@code <canonical>${short}</canonical>} so canonical-form
- * references resolve to the same value. The mirror also holds —
- * if {@code canonical} is declared but {@code short} is not,
- * inject {@code <short>${canonical}</short>}. If neither is
- * declared, the POM is not modified (we do not inject the
- * manifest's default value over an absent property, which would
- * otherwise leak the IKE manifest into POMs that don't reference
- * any of its pins).
+ * <p>For each {@code __ALIAS} property in the consumer's file
+ * model (carrying a comma-separated list of legacy short-name
+ * aliases): inject {@code <short>${G__GA__A__VERSION}</short>}
+ * indirections for each listed short-name not already declared.
+ * Source poms declare alias relationships via {@code __ALIAS}
+ * typed-marker metadata only; this stage materializes the
+ * mechanical Maven property indirection so that legacy
+ * short-name references resolve during the build. See
+ * IKE-Network/ike-issues#526.
+ *
+ * <p>Inherited {@code __ALIAS} declarations from ancestor poms
+ * don't need vm-ext intervention — release-publish bakes the
+ * indirections into deployed parent poms (#527), so descendants
+ * resolve legacy short-name references via standard Maven
+ * inheritance + interpolation.
  *
  * <h3>2. Hard failure on unresolved canonical references
  * (effective-model stage)</h3>
@@ -201,12 +205,11 @@ public class VersionManagementTransformer implements ModelTransformer {
         if (!violations.isEmpty()) {
             throw new ModelTransformerException(buildErrorMessage(model, violations));
         }
-        AliasManifest manifest = ManifestLoader.load(projectDir);
         Map<String, String> props = model.getProperties();
         if (props == null) {
             props = Collections.emptyMap();
         }
-        Map<String, String> injected = computeAliasInjections(props, manifest);
+        Map<String, String> injected = computeAliasInjections(props);
         if (injected.isEmpty()) {
             return model;
         }
@@ -264,27 +267,54 @@ public class VersionManagementTransformer implements ModelTransformer {
         throw new ModelTransformerException(buildErrorMessage(model, violations));
     }
 
+    /**
+     * Computes the indirections to inject from {@code __ALIAS}
+     * declarations in the file model's properties.
+     *
+     * <p>For each property whose name ends in {@code __ALIAS} (carrying
+     * a comma-separated list of legacy short-name aliases), generates
+     * a {@code <short>${G__GA__A__VERSION}</short>} indirection for
+     * each legacy short-name not already declared in the file model.
+     *
+     * <p>Replaced the pre-#526 YAML-driven alias manifest. Source poms
+     * declare alias relationships directly via {@code __ALIAS} typed-
+     * marker metadata; vm-ext reads it from the file-model properties.
+     * Inherited {@code __ALIAS} declarations from ancestor poms reach
+     * descendants via Maven inheritance — but the indirections those
+     * declarations expand to are already baked into deployed parent
+     * poms by release-publish (IKE-Network/ike-issues#527), so
+     * descendants resolve legacy short-name references without needing
+     * vm-ext to walk the parent chain.
+     */
     private static Map<String, String> computeAliasInjections(
-            Map<String, String> existing, AliasManifest manifest) {
+            Map<String, String> existing) {
         Map<String, String> injected = new LinkedHashMap<>();
-        for (Map.Entry<String, String> alias : manifest.aliases().entrySet()) {
-            String shortName = alias.getKey();
-            String canonical = alias.getValue();
-            boolean hasShort = existing.containsKey(shortName);
-            boolean hasCanonical = existing.containsKey(canonical);
-            if (hasShort && !hasCanonical) {
-                // Consumer pinned the legacy name; mirror to canonical.
-                injected.put(canonical, "${" + shortName + "}");
-            } else if (hasCanonical && !hasShort) {
-                // Consumer pinned the canonical name; mirror to legacy
-                // so transitive deps using the short-name idiom still
-                // resolve.
-                injected.put(shortName, "${" + canonical + "}");
+        String aliasSuffix = TypedMarker.ALIAS.token();
+        String versionSuffix = TypedMarker.VERSION.token();
+
+        for (Map.Entry<String, String> entry : existing.entrySet()) {
+            String name = entry.getKey();
+            if (name == null || !name.endsWith(aliasSuffix)) {
+                continue;
+            }
+            // <G>__GA__<A>__ALIAS → <G>__GA__<A>
+            String coordPrefix = name.substring(0,
+                    name.length() - aliasSuffix.length());
+            String canonical = coordPrefix + versionSuffix;
+            String reference = "${" + canonical + "}";
+
+            String aliasValue = entry.getValue();
+            if (aliasValue == null || aliasValue.isBlank()) {
+                continue;
+            }
+            for (String shortName : aliasValue.split(",")) {
+                String trimmed = shortName.trim();
+                if (trimmed.isEmpty() || existing.containsKey(trimmed)) {
+                    continue;
+                }
+                injected.put(trimmed, reference);
             }
         }
-        // Sanity: never inject a property that is somehow already
-        // declared (covers the edge case where alias chains overlap).
-        injected.keySet().removeAll(existing.keySet());
         return injected;
     }
 
@@ -548,7 +578,6 @@ public class VersionManagementTransformer implements ModelTransformer {
     }
 
     private static String buildErrorMessage(Model model, List<Violation> violations) {
-        Path projectDir = projectDirOf(model);
         StringBuilder sb = new StringBuilder();
         sb.append("ike-version-management-extension: ")
           .append(violations.size())
@@ -609,8 +638,6 @@ public class VersionManagementTransformer implements ModelTransformer {
                 }
             }
         }
-        sb.append("\nAlias manifest sources consulted:\n        ")
-          .append(ManifestLoader.consultedPaths(projectDir));
         return sb.toString();
     }
 
