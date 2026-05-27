@@ -5,12 +5,14 @@
 
   A Maven 4 build extension that implements the IKE typed-marker
   family for version-property naming (IKE-Network/ike-issues#470,
-  #471, #472, #525). Hooks ModelTransformer to:
+  #471, #472, #525, #526). Hooks ModelTransformer to:
 
-    1. Inject canonical-form ↔ legacy-short-name property
-       indirections at file-model stage, sourced from a bundled
-       alias manifest (META-INF/ike/version-aliases.yaml) and an
-       optional per-project override (.mvn/version-aliases.yaml).
+    1. Read every ${G__GA__A__ALIAS} property declared in the
+       inherited file-model properties and inject a short-name
+       indirection (e.g. <ike-tooling.version>${...}</...>) for
+       each comma-separated short name. No YAML manifest — the
+       alias metadata lives directly in the parent pom alongside
+       the __VERSION pin it shadows.
     2. Fail the build at effective-model stage with an actionable
        message when a <dependency>/<plugin> <version> reference
        points at an undeclared ${G__GA__A__VERSION} (or legacy
@@ -55,12 +57,13 @@
     <description>
         Maven 4 build extension that implements the IKE typed-marker
         family for version-property naming:
-        ${groupId__GA__artifactId__VERSION}. Injects alias
-        indirections from a bundled manifest, fails fast on
-        undeclared canonical references, and detects ${G.A} typos
-        with a corrective hint. Accepts the pre-#525 U+00B7 form
-        during the transition. See IKE-Network/ike-issues#470,
-        #472, #525.
+        ${groupId__GA__artifactId__VERSION}. Reads __ALIAS
+        properties from the inherited file-model and injects the
+        declared short-name indirections, fails fast on undeclared
+        canonical references, and detects ${G.A} typos with a
+        corrective hint. Accepts the pre-#525 U+00B7 form during
+        the transition. See IKE-Network/ike-issues#470, #472,
+        #525, #526.
     </description>
     <url>https://ike.network/ike-version-management-extension/</url>
     <inceptionYear>2026</inceptionYear>
