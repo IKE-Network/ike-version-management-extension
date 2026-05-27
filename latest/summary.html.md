@@ -11,7 +11,7 @@ canonical_url: https://ike.network/ike-version-management-extension/summary.html
 | Field | Value |
 | --- | --- |
 | Name | IKE Version Management Extension |
-| Description | Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Injects alias indirections from a bundled manifest, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525. |
+| Description | Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Reads __ALIAS properties from the inherited file-model and injects the declared short-name indirections, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525, #526. |
 | Homepage | [https://ike.network/ike-version-management-extension/](https://ike.network/ike-version-management-extension/)[1] |
 
 ## [Project Organization](#project-organization)
@@ -27,6 +27,6 @@ canonical_url: https://ike.network/ike-version-management-extension/summary.html
 | --- | --- |
 | GroupId | network.ike.tooling |
 | ArtifactId | ike-version-management-extension |
-| Version | 9 |
+| Version | 10 |
 | Type | jar |
 | Java Version | - |

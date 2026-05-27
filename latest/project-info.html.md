@@ -15,7 +15,7 @@ This document provides an overview of the various documents and links that are p
 | [Dependencies](dependencies.html)[2] | This document lists the project's dependencies and provides information on each dependency. |
 | [Maven Coordinates](dependency-info.html)[3] | This document describes how to include this project as a dependency using various dependency management tools. |
 | [Distribution Management](distribution-management.html)[4] | This document provides informations on the distribution management of this project. |
-| [About](index.html)[5] | Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Injects alias indirections from a bundled manifest, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525. |
+| [About](index.html)[5] | Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Reads __ALIAS properties from the inherited file-model and injects the declared short-name indirections, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525, #526. |
 | [Licenses](licenses.html)[6] | This document lists the project license(s). |
 | [Plugin Management](plugin-management.html)[7] | This document lists the plugins that are defined through pluginManagement. |
 | [Plugins](plugins.html)[8] | This document lists the build plugins and the report plugins used by this project. |

@@ -46,11 +46,11 @@ The following is a list of compile dependencies for this project. These dependen
 
 ## [Dependency Tree](#dependency-tree)
 
-- network.ike.tooling:ike-version-management-extension:jar:9 ** 
+- network.ike.tooling:ike-version-management-extension:jar:10 ** 
   
   | IKE Version Management Extension |
   | --- |
-  | **Description: **Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Injects alias indirections from a bundled manifest, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525. **URL: **[https://ike.network/ike-version-management-extension/](https://ike.network/ike-version-management-extension/)[13] **Project Licenses: **[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
+  | **Description: **Maven 4 build extension that implements the IKE typed-marker family for version-property naming: ${groupId__GA__artifactId__VERSION}. Reads __ALIAS properties from the inherited file-model and injects the declared short-name indirections, fails fast on undeclared canonical references, and detects ${G.A} typos with a corrective hint. Accepts the pre-#525 U+00B7 form during the transition. See IKE-Network/ike-issues#470, #472, #525, #526. **URL: **[https://ike.network/ike-version-management-extension/](https://ike.network/ike-version-management-extension/)[13] **Project Licenses: **[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)[2] |
   
     - org.apache.maven:maven-api-spi:jar:4.0.0-rc-5 (compile) ** 
       
