@@ -50,7 +50,7 @@
 
     <groupId>network.ike.tooling</groupId>
     <artifactId>ike-version-management-extension</artifactId>
-    <version>11-SNAPSHOT</version>
+    <version>11</version>
     <packaging>jar</packaging>
 
     <name>IKE Version Management Extension</name>
