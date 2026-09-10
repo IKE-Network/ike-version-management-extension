@@ -163,14 +163,25 @@
             <version>${org.slf4j__GA__slf4j-api__VERSION}</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Test stack. Pinned through the ike-base-parent typed-marker
+             property; JUnit's own assertions, no further test-scope
+             dependencies (IKE-Network/ike-issues#1094). -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${org.junit.jupiter__GA__junit-jupiter__VERSION}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <!--
-        No in-repo tests. The transformer's behavior is exercised by
-        integration tests in a consuming reactor (workspace-reactor-example
-        is the obvious primary target). Keeping this artifact pure-
-        library lets ike-base-parent be a clean Tier 0 inheritance
-        with no test-stack baggage.
+        In-repo tests exercise each rule directly on Maven 4 API models
+        — alias injection, the unresolved-canonical and typo checks,
+        __POLICY validation, the reactor-root <scm> rule and its git-entry
+        detection. The scm-lint invoker cases in workspace-reactor-example/
+        integration-tests-example remain the smoke test of the released
+        artifact inside a real Maven run.
     -->
 
     <build>
