@@ -152,6 +152,17 @@
             <artifactId>ike-java-support</artifactId>
             <version>${network.ike__GA__ike-java-support__VERSION}</version>
         </dependency>
+
+        <!-- Build-log reporting. Provided: Maven's core realm exports
+             org.slf4j to extensions, so the running Maven supplies the
+             binding and the artifact ships none. Pinned through the
+             ike-base-parent typed-marker property. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${org.slf4j__GA__slf4j-api__VERSION}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <!--

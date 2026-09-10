@@ -14,6 +14,8 @@ import org.apache.maven.api.model.PluginManagement;
 import org.apache.maven.api.model.Scm;
 import org.apache.maven.api.spi.ModelTransformer;
 import org.apache.maven.api.spi.ModelTransformerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -145,6 +147,14 @@ import java.util.regex.Pattern;
 @Singleton
 public class VersionManagementTransformer implements ModelTransformer {
 
+    /**
+     * Build-log reporting goes through Maven's own logger, so it obeys
+     * {@code -q} and the console layout like any other component
+     * output. The core realm exports {@code org.slf4j} to extensions.
+     */
+    private static final Logger LOG =
+            LoggerFactory.getLogger(VersionManagementTransformer.class);
+
     /** Matches a single {@code ${...}} property reference. */
     private static final Pattern PROPERTY_REF = Pattern.compile("\\$\\{([^}]+)}");
 
@@ -215,9 +225,9 @@ public class VersionManagementTransformer implements ModelTransformer {
         }
         Map<String, String> merged = new LinkedHashMap<>(props);
         merged.putAll(injected);
-        System.err.println("[ike-version-management-extension] injected "
-                + injected.size() + " alias " + (injected.size() == 1 ? "indirection" : "indirections")
-                + " into " + describe(model) + ": " + injected.keySet());
+        LOG.info("ike-version-management-extension: injected {} alias {} into {}: {}",
+                injected.size(), injected.size() == 1 ? "indirection" : "indirections",
+                describe(model), injected.keySet());
         return model.withProperties(merged);
     }
 
@@ -509,19 +519,39 @@ public class VersionManagementTransformer implements ModelTransformer {
 
     /**
      * The nearest ancestor directory (including {@code start} itself)
-     * that contains a {@code .git} entry, or {@code null} when none
-     * exists at or above {@code start}. Matches the algorithm in
+     * that holds a real git entry, or {@code null} when none exists at
+     * or above {@code start}. Matches the algorithm in
      * {@code SiblingRepositoryKeyResolver}.
      */
     private static Path gitRoot(Path start) {
         Path cursor = start;
         while (cursor != null) {
-            if (Files.exists(cursor.resolve(".git"))) {
+            if (hasGitEntry(cursor)) {
                 return cursor;
             }
             cursor = cursor.getParent();
         }
         return null;
+    }
+
+    /**
+     * Whether {@code dir} holds a real git entry: a {@code .git}
+     * directory with a {@code HEAD} inside it, or a {@code .git} file —
+     * the gitdir pointer a worktree or submodule carries.
+     *
+     * <p>An empty {@code .git} directory is not one. A Syncthing-synced
+     * tree can carry such husks in subprojects, left by a former ignore
+     * rule that let the entry through without its contents; reading one
+     * as a repository root would move the {@code <scm>} requirement onto
+     * a subproject that inherits it by design and fail that build for no
+     * reason (IKE-Network/ike-issues#1094).
+     */
+    static boolean hasGitEntry(Path dir) {
+        Path git = dir.resolve(".git");
+        if (Files.isRegularFile(git)) {
+            return true;
+        }
+        return Files.isDirectory(git) && Files.exists(git.resolve("HEAD"));
     }
 
     /**
