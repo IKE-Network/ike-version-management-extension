@@ -69,11 +69,16 @@ import java.util.regex.Pattern;
  * short-name references resolve during the build. See
  * IKE-Network/ike-issues#526.
  *
- * <p>Inherited {@code __ALIAS} declarations from ancestor poms
- * don't need vm-ext intervention — release-publish bakes the
- * indirections into deployed parent poms (#527), so descendants
- * resolve legacy short-name references via standard Maven
- * inheritance + interpolation.
+ * <p>Maven builds a module's consumer POM from the transformed
+ * file model, so the injected indirections travel with every
+ * installed or deployed POM — snapshot or release — and
+ * descendants resolve legacy short-name references through
+ * ordinary inheritance and interpolation. Inherited {@code __ALIAS}
+ * declarations therefore need no intervention here: the ancestor's
+ * own build already carried them into its deployed POM. The release
+ * flow checks that the consumer POM holds them before tagging
+ * (IKE-Network/ike-issues#1094; supersedes the #527 release-time
+ * bake).
  *
  * <h3>2. Hard failure on unresolved canonical references
  * (effective-model stage)</h3>
@@ -288,13 +293,11 @@ public class VersionManagementTransformer implements ModelTransformer {
      *
      * <p>Replaced the pre-#526 YAML-driven alias manifest. Source poms
      * declare alias relationships directly via {@code __ALIAS} typed-
-     * marker metadata; vm-ext reads it from the file-model properties.
-     * Inherited {@code __ALIAS} declarations from ancestor poms reach
-     * descendants via Maven inheritance — but the indirections those
-     * declarations expand to are already baked into deployed parent
-     * poms by release-publish (IKE-Network/ike-issues#527), so
-     * descendants resolve legacy short-name references without needing
-     * vm-ext to walk the parent chain.
+     * marker metadata; the extension reads it from the file-model
+     * properties. Inherited {@code __ALIAS} declarations from ancestor
+     * poms need no walk up the parent chain: the ancestor's own build
+     * injected the indirections into its consumer POM, which is what
+     * descendants inherit (IKE-Network/ike-issues#1094).
      */
     private static Map<String, String> computeAliasInjections(
             Map<String, String> existing) {
@@ -626,7 +629,8 @@ public class VersionManagementTransformer implements ModelTransformer {
                     sb.append("    Property ${").append(v.name()).append("} is not declared.\n")
                       .append("    The IKE convention requires every ${groupId__GA__artifactId__VERSION}\n")
                       .append("    typed-marker property to be defined either locally, in an inherited\n")
-                      .append("    parent POM (e.g., ike-base-parent), or in an alias manifest. The\n")
+                      .append("    parent POM (e.g., ike-base-parent), or injected from an __ALIAS\n")
+                      .append("    declaration. The\n")
                       .append("    legacy U+00B7 form (${groupId·artifactId}) is also accepted during\n")
                       .append("    the transition. See IKE-Network/ike-issues#525.\n");
                 }

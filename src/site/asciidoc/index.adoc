@@ -3,121 +3,125 @@
 image:https://img.shields.io/maven-central/v/network.ike.tooling/ike-version-management-extension[Maven Central,link=https://central.sonatype.com/artifact/network.ike.tooling/ike-version-management-extension]
 
 `network.ike.tooling:ike-version-management-extension` is a Maven 4
-build extension that implements the IKE typed-marker family for
-version-property naming. A version pin is named
-`${groupId__GA__artifactId__VERSION}`; a release policy for the
-same coordinate is `${groupId__GA__artifactId__POLICY}`. The
-rule: `__` is a separator between adjacent name-parts; trailing
-`__` only appears when something follows; the XML structural
-terminator (`>` for declarations, `}` for references) closes the
-final segment.
+build extension that enforces the IKE typed-marker convention for
+version properties. A version pin is named
+`${groupId__GA__artifactId__VERSION}`, a release policy for the same
+coordinate is `${groupId__GA__artifactId__POLICY}`, and the legacy
+short names an artifact also goes by are listed in
+`${groupId__GA__artifactId__ALIAS}`. The rule: `__` separates
+adjacent name parts, `GA` marks the boundary between groupId and
+artifactId, and the terminal marker names the facet. The XML
+terminator (`>` for declarations, `}` for references) closes the last
+segment, so a name never ends in `__`.
 
-The extension also accepts the legacy U+00B7 form
-(`${groupId·artifactId}`) during the transition period — old POMs
-still resolve, suggestions and error messages point at the
-typed-marker form. See
-link:https://github.com/IKE-Network/ike-issues/issues/525[#525]
-for the migration plan and rationale.
+The legacy U+00B7 form (`${groupId·artifactId}`) is still read during
+the transition. See
+link:https://github.com/IKE-Network/ike-issues/issues/525[#525] for
+the change and its rationale.
 
 == What it does
 
-When registered in a workspace's `.mvn/extensions.xml`, the
-extension hooks Maven 4's `ModelTransformer` SPI to:
+Registered in a repository's `.mvn/extensions.xml`, the extension
+hooks Maven 4's `ModelTransformer` SPI and applies five rules to every
+POM under that directory. A POM resolved from a repository — anything
+under the local repository cache — passes through untouched.
 
-. *Inject alias indirections* at file-model stage. The bundled
-  manifest (`META-INF/ike/version-aliases.yaml`) maps legacy
-  short-name property idioms — `junit-jupiter.version`,
-  `maven-compiler-plugin.version`, `ike-tooling.version`, etc. —
-  to their canonical typed-marker form. When a consumer's POM
-  declares one side of an alias pair, the extension injects the
-  other side as a one-line indirection, so both names resolve to
-  the same value.
+. *Alias injection* (file-model stage). For each `__ALIAS` property,
+  carrying a comma-separated list of legacy short names, the extension
+  injects `<short>${G__GA__A__VERSION}</short>` for every short name
+  the POM does not already declare. Maven builds the consumer POM from
+  the transformed model, so the indirections travel with every
+  installed or deployed POM, snapshot or release, and descendants
+  resolve the short names through ordinary inheritance. The release
+  flow checks that the consumer POM holds them before tagging
+  (link:https://github.com/IKE-Network/ike-issues/issues/1094[#1094]).
 
-. *Fail fast on unresolved canonical references* at
-  effective-model stage. If a `<dependency>` or `<plugin>`
-  `<version>` references `${G__GA__A}` (or the legacy `${G·A}`)
-  and no such property is declared (locally, by inheritance, or
-  by alias injection), the build fails with an actionable error
-  message naming the property, the artifact block, and the
-  manifest sources consulted.
+. *Unresolved canonical references* (effective-model stage). A
+  `<dependency>`, `<plugin>`, `<dependencyManagement>` or
+  `<pluginManagement>` `<version>` that still reads
+  `${G__GA__A__VERSION}` (or the legacy `${G·A}`) after interpolation
+  fails the build. The message names the property, the section and
+  the coordinate.
 
-. *Detect `${G.A}` typos* — the common mistake of typing regular
-  periods where the canonical typed-marker form was meant. The
-  extension tries three corrections per dot position
-  (right-to-left): substitute the dot with `__GA__`; same plus a
-  `__VERSION` terminal facet; substitute with the legacy `·`. If
-  any candidate is declared, the build fails with a "did you
-  mean `${G__GA__A__VERSION}`?" hint.
+. *Dot typos* (effective-model stage). An unresolved `${G.A}` is
+  checked at every dot, right to left, against three candidates:
+  `__GA__` in place of the dot, the same with `__VERSION` appended,
+  and the legacy `·`. If one is declared, the build fails with
+  "did you mean `${…}`?". A dotted name with no declared candidate is
+  left alone; dots are legal in property names.
 
-. *Validate release policies* — for any property whose name ends
-  in `__POLICY` (or the legacy `·policy`), the value must be one
-  of the `ReleasePolicy` rungs: `notify`, `verify`, `propose`,
-  `integrate`, `release`. An unrecognized value fails the build
-  with the valid set and a closest-match "did you mean" hint.
+. *Release policies* (effective-model stage). Every property ending in
+  `__POLICY` (or the legacy `·policy`) must hold one of `notify`,
+  `verify`, `propose`, `integrate`, `release`. Any other value fails
+  with the valid set and the closest rung.
 
-A project-local `.mvn/version-aliases.yaml` can override or extend
-the bundled defaults. Anything declared project-local takes
-precedence per-key over the bundled manifest.
+. *Reactor-root `<scm>`* (file-model stage). The POM whose directory
+  holds the `.git` entry must declare a local `<scm>` with a `<url>`
+  or `<connection>`. The release cascade keys repositories by that
+  block, and Maven's default `<scm>` inheritance would append the
+  artifactId to the parent's URL, so inheriting it is not enough
+  (link:https://github.com/IKE-Network/ike-issues/issues/496[#496]).
+  Subprojects inherit and are not checked. A `.git` entry counts only
+  when it is a file — the gitdir pointer of a worktree or submodule —
+  or a directory holding `HEAD`; an empty `.git` directory left in a
+  synced subproject is a husk, not a repository root.
 
-See link:https://github.com/IKE-Network/ike-tooling/blob/main/ike-build-standards/src/main/standards/IKE-VERSIONS.md[IKE-VERSIONS.md] for
-the full convention specification.
-
-== Stability commitment
-
-This artifact does exactly the three things above. It never grows
-scope. Future version-management features (alignment, cascade
-integration, lint) ship as goals in `ike-workspace-maven-plugin`
-or as separate extensions. The extension's dependency surface
-stays at the Maven 4 API jars (compile scope, loaded into the
-extension classloader). Manifest parsing is hand-rolled to keep
-the artifact dependency-free.
-
-Versioned independently of the link:https://github.com/IKE-Network/ike-platform[ike-platform]
-release cadence. If different behavior is ever needed, a separate
-extension is added rather than evolving this one.
+Reports go through Maven's logger. A rule that fails names every
+violation in one message, each with the fix.
 
 == Wiring
 
-Declared in a workspace's `.mvn/extensions.xml` alongside the
-existing IKE workspace extension:
+Every IKE working set carries the extension in the managed block of
+its `.mvn/extensions.xml`, beside `ike-workspace-extension` and
+`ike-build-report-extension`. `ws:scaffold-init` writes the block and
+`ws:scaffold-publish` refreshes it from the pin
+`network.ike.tooling__GA__ike-version-management-extension__VERSION`
+in `ike-platform`. Foundation repositories that declare `__ALIAS`
+metadata — `ike-base-parent`, `ike-platform`, `ike-lease-plugin` —
+register it by hand in the same file. The version is a literal; Maven 4
+does not interpolate `.mvn/extensions.xml`.
 
 [source,xml]
 ----
 <extensions>
     <extension>
         <groupId>network.ike.tooling</groupId>
-        <artifactId>ike-workspace-extension</artifactId>
-        <version>4</version>
-    </extension>
-    <extension>
-        <groupId>network.ike.tooling</groupId>
         <artifactId>ike-version-management-extension</artifactId>
-        <version>1</version>
+        <version>11</version>
     </extension>
 </extensions>
 ----
 
-`ws:scaffold-init` writes both entries into new workspaces.
-`ws:scaffold-publish` keeps them in sync. Versions are sourced
-from properties declared in `ike-parent` — operators do not
-maintain them by hand.
+== Build and test
 
-== Coordinates
-
-[source,xml]
+[source,bash]
 ----
-<dependency>
-    <groupId>network.ike.tooling</groupId>
-    <artifactId>ike-version-management-extension</artifactId>
-    <version>1</version>
-</dependency>
+mvn install
 ----
 
-Available from Maven Central.
+The in-repo suite exercises each rule on Maven 4 API models built
+through the API builders. The `scm-lint-*` invoker cases in
+`workspace-reactor-example/integration-tests-example` run the released
+artifact inside a real Maven build.
+
+== Scope
+
+The extension enforces the convention and nothing else. Version
+alignment (`ws:align`), cascade walking (`ike:release-cascade`) and
+lint reports (`ws:scaffold-draft`) live in `ike-workspace-maven-plugin`
+and `ike-maven-plugin`. The dependency surface is the Maven 4 API jars
+at compile scope, `ike-java-support` for the shared value types, and
+SLF4J at provided scope — the core realm supplies it.
+
+Versioned independently of the
+link:https://github.com/IKE-Network/ike-platform[ike-platform] release
+cadence.
 
 == Tracking
 
-* link:https://github.com/IKE-Network/ike-issues/issues/470[IKE-Network/ike-issues#470] — the parent epic.
-* link:https://github.com/IKE-Network/ike-issues/issues/471[IKE-Network/ike-issues#471] — IKE-VERSIONS.md, the convention standard.
-* link:https://github.com/IKE-Network/ike-issues/issues/472[IKE-Network/ike-issues#472] — this extension.
-* link:https://github.com/IKE-Network/ike-issues/issues/473[IKE-Network/ike-issues#473] — `ike-base-parent` ships the alias manifest.
+* link:https://github.com/IKE-Network/ike-issues/issues/470[IKE-Network/ike-issues#470] — the convention.
+* link:https://github.com/IKE-Network/ike-issues/issues/471[IKE-Network/ike-issues#471] — IKE-VERSIONS.md, the standard.
+* link:https://github.com/IKE-Network/ike-issues/issues/472[IKE-Network/ike-issues#472] — this artifact.
+* link:https://github.com/IKE-Network/ike-issues/issues/525[IKE-Network/ike-issues#525] — the typed-marker family.
+* link:https://github.com/IKE-Network/ike-issues/issues/526[IKE-Network/ike-issues#526] — `__ALIAS` metadata.
+* link:https://github.com/IKE-Network/ike-issues/issues/1094[IKE-Network/ike-issues#1094] — fleet-wide registration; retirement of release-time alias baking.
