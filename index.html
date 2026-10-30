@@ -84,13 +84,13 @@
 					<div class="header-title">IKE Version Management Extension</div>
 						<div class="header-subtitle">
 							<span class="version-prefix">Version</span>
-							<span class="version">11</span>
+							<span class="version">12</span>
 						</div>
 					</div>
 					<div class="navbar-brand header-xxs visible-xs">
 						<div class="header-title">IKE Version Management Extension</div>
 						<div class="header-subtitle">
-							Version <strong>11</strong>
+							Version <strong>12</strong>
 						</div>
 					</div>
 					<form class="navbar-form site-search site-search-xs visible-xs" ng-show="showSearchInput">
@@ -166,7 +166,7 @@
 
 					<div class="col-md-12">
 					<div class="page-header visible-print-block">
-							<h3><small>IKE Version Management Extension</small><br/>							IKE Version Management Extension 11
+							<h3><small>IKE Version Management Extension</small><br/>							IKE Version Management Extension 12
 							</h3>
 						</div>
 								<div class="home-xs visible-xs">
@@ -185,62 +185,54 @@
 								</div>
 <h1 id="ike-version-management-extension">IKE Version Management Extension</h1>
 <p><span class="image"><a class="image externalLink" href="https://central.sonatype.com/artifact/network.ike.tooling/ike-version-management-extension"><img src="https://img.shields.io/maven-central/v/network.ike.tooling/ike-version-management-extension" alt="Maven Central"></a><sup class="visible-print-inline">[1]</sup></span></p>
-<p><code>network.ike.tooling:ike-version-management-extension</code> is a Maven 4 build extension that implements the IKE typed-marker family for version-property naming. A version pin is named <code>${groupId<em>GA</em>artifactId<em>VERSION}</em></code><em>; a release policy for the same coordinate is <code>${groupId</code></em><code>GA<em>artifactId</em>POLICY}</code>. The rule: <code><em></em></code><em> is a separator between adjacent name-parts; trailing <code></code></em> only appears when something follows; the XML structural terminator (<code>&gt;</code> for declarations, <code>}</code> for references) closes the final segment.</p>
-<p>The extension also accepts the legacy U+00B7 form (<code>${groupId·artifactId}</code>) during the transition period — old POMs still resolve, suggestions and error messages point at the typed-marker form. See <a href="https://github.com/IKE-Network/ike-issues/issues/525" class="externalLink">#525</a><sup class="visible-print-inline">[2]</sup> for the migration plan and rationale.</p>
+<p><code>network.ike.tooling:ike-version-management-extension</code> is a Maven 4 build extension that enforces the IKE typed-marker convention for version properties. A version pin is named <code>${groupId<em>GA</em>artifactId<em>VERSION}</em></code><em>, a release policy for the same coordinate is <code>${groupId</code></em><code>GA<em>artifactId</em>POLICY}</code>, and the legacy short names an artifact also goes by are listed in <code>${groupId<em>GA</em>artifactId<em>ALIAS}</em></code><em>. The rule: <code></code></em> separates adjacent name parts, <code>GA</code> marks the boundary between groupId and artifactId, and the terminal marker names the facet. The XML terminator (<code>&gt;</code> for declarations, <code>}</code> for references) closes the last segment, so a name never ends in <code>__</code>.</p>
+<p>The legacy U+00B7 form (<code>${groupId·artifactId}</code>) is still read during the transition. See <a href="https://github.com/IKE-Network/ike-issues/issues/525" class="externalLink">#525</a><sup class="visible-print-inline">[2]</sup> for the change and its rationale.</p>
 <div>
  <h2 id="what-it-does"><a href="#what-it-does"></a><a id="what-it-does"></a>What it does</h2>
- <p>When registered in a workspace’s <code>.mvn/extensions.xml</code>, the extension hooks Maven 4’s <code>ModelTransformer</code> SPI to:</p>
+ <p>Registered in a repository’s <code>.mvn/extensions.xml</code>, the extension hooks Maven 4’s <code>ModelTransformer</code> SPI and applies five rules to every POM under that directory. A POM resolved from a repository — anything under the local repository cache — passes through untouched.</p>
  <ol style="list-style-type: decimal;">
-  <li><strong>Inject alias indirections</strong> at file-model stage. The bundled manifest (<code>META-INF/ike/version-aliases.yaml</code>) maps legacy short-name property idioms — <code>junit-jupiter.version</code>, <code>maven-compiler-plugin.version</code>, <code>ike-tooling.version</code>, etc. — to their canonical typed-marker form. When a consumer’s POM declares one side of an alias pair, the extension injects the other side as a one-line indirection, so both names resolve to the same value.</li>
-  <li><strong>Fail fast on unresolved canonical references</strong> at effective-model stage. If a <code>&lt;dependency&gt;</code> or <code>&lt;plugin&gt;</code> <code>&lt;version&gt;</code> references <code>${G<em>GA</em>A}</code> (or the legacy <code>${G·A}</code>) and no such property is declared (locally, by inheritance, or by alias injection), the build fails with an actionable error message naming the property, the artifact block, and the manifest sources consulted.</li>
-  <li><strong>Detect <code>${G.A}</code> typos</strong> — the common mistake of typing regular periods where the canonical typed-marker form was meant. The extension tries three corrections per dot position (right-to-left): substitute the dot with <code><em>GA</em></code>; same plus a <code><em>VERSION</em></code><em> terminal facet; substitute with the legacy <code>·</code>. If any candidate is declared, the build fails with a "did you mean <code>${G</code></em><code>GA<em>A</em>VERSION}</code>?" hint.</li>
-  <li><strong>Validate release policies</strong> — for any property whose name ends in <code>__POLICY</code> (or the legacy <code>·policy</code>), the value must be one of the <code>ReleasePolicy</code> rungs: <code>notify</code>, <code>verify</code>, <code>propose</code>, <code>integrate</code>, <code>release</code>. An unrecognized value fails the build with the valid set and a closest-match "did you mean" hint.</li>
+  <li><strong>Alias injection</strong> (file-model stage). For each <code><em>ALIAS</em></code><em> property, carrying a comma-separated list of legacy short names, the extension injects <code>&lt;short&gt;${G</code></em><code>GA<em>A</em>VERSION}&lt;/short&gt;</code> for every short name the POM does not already declare. Maven builds the consumer POM from the transformed model, so the indirections travel with every installed or deployed POM, snapshot or release, and descendants resolve the short names through ordinary inheritance. The release flow checks that the consumer POM holds them before tagging (<a href="https://github.com/IKE-Network/ike-issues/issues/1094" class="externalLink">#1094</a><sup class="visible-print-inline">[3]</sup>).</li>
+  <li><strong>Unresolved canonical references</strong> (effective-model stage). A <code>&lt;dependency&gt;</code>, <code>&lt;plugin&gt;</code>, <code>&lt;dependencyManagement&gt;</code> or <code>&lt;pluginManagement&gt;</code> <code>&lt;version&gt;</code> that still reads <code>${G<em>GA</em>A__VERSION}</code> (or the legacy <code>${G·A}</code>) after interpolation fails the build. The message names the property, the section and the coordinate.</li>
+  <li><strong>Dot typos</strong> (effective-model stage). An unresolved <code>${G.A}</code> is checked at every dot, right to left, against three candidates: <code><em>GA</em></code> in place of the dot, the same with <code>__VERSION</code> appended, and the legacy <code>·</code>. If one is declared, the build fails with "did you mean <code>${…}</code>?". A dotted name with no declared candidate is left alone; dots are legal in property names.</li>
+  <li><strong>Release policies</strong> (effective-model stage). Every property ending in <code>__POLICY</code> (or the legacy <code>·policy</code>) must hold one of <code>notify</code>, <code>verify</code>, <code>propose</code>, <code>integrate</code>, <code>release</code>. Any other value fails with the valid set and the closest rung.</li>
+  <li><strong>Reactor-root <code>&lt;scm&gt;</code></strong> (file-model stage). The POM whose directory holds the <code>.git</code> entry must declare a local <code>&lt;scm&gt;</code> with a <code>&lt;url&gt;</code> or <code>&lt;connection&gt;</code>. The release cascade keys repositories by that block, and Maven’s default <code>&lt;scm&gt;</code> inheritance would append the artifactId to the parent’s URL, so inheriting it is not enough (<a href="https://github.com/IKE-Network/ike-issues/issues/496" class="externalLink">#496</a><sup class="visible-print-inline">[4]</sup>). Subprojects inherit and are not checked. A <code>.git</code> entry counts only when it is a file — the gitdir pointer of a worktree or submodule — or a directory holding <code>HEAD</code>; an empty <code>.git</code> directory left in a synced subproject is a husk, not a repository root.</li>
  </ol>
- <p>A project-local <code>.mvn/version-aliases.yaml</code> can override or extend the bundled defaults. Anything declared project-local takes precedence per-key over the bundled manifest.</p>
- <p>See <a href="https://github.com/IKE-Network/ike-tooling/blob/main/ike-build-standards/src/main/standards/IKE-VERSIONS.md" class="externalLink">IKE-VERSIONS.md</a><sup class="visible-print-inline">[3]</sup> for the full convention specification.</p>
-</div>
-<div>
- <h2 id="stability-commitment"><a href="#stability-commitment"></a><a id="stability-commitment"></a>Stability commitment</h2>
- <p>This artifact does exactly the three things above. It never grows scope. Future version-management features (alignment, cascade integration, lint) ship as goals in <code>ike-workspace-maven-plugin</code> or as separate extensions. The extension’s dependency surface stays at the Maven 4 API jars (compile scope, loaded into the extension classloader). Manifest parsing is hand-rolled to keep the artifact dependency-free.</p>
- <p>Versioned independently of the <a href="https://github.com/IKE-Network/ike-platform" class="externalLink">ike-platform</a><sup class="visible-print-inline">[4]</sup> release cadence. If different behavior is ever needed, a separate extension is added rather than evolving this one.</p>
+ <p>Reports go through Maven’s logger. A rule that fails names every violation in one message, each with the fix.</p>
 </div>
 <div>
  <h2 id="wiring"><a href="#wiring"></a><a id="wiring"></a>Wiring</h2>
- <p>Declared in a workspace’s <code>.mvn/extensions.xml</code> alongside the existing IKE workspace extension:</p>
+ <p>Every IKE working set carries the extension in the managed block of its <code>.mvn/extensions.xml</code>, beside <code>ike-workspace-extension</code> and <code>ike-build-report-extension</code>. <code>ws:scaffold-init</code> writes the block and <code>ws:scaffold-publish</code> refreshes it from the pin <code>network.ike.tooling<em>GA</em>ike-version-management-extension<em>VERSION</em></code><em> in <code>ike-platform</code>. Foundation repositories that declare <code></code></em><code>ALIAS</code> metadata — <code>ike-base-parent</code>, <code>ike-platform</code>, <code>ike-lease-plugin</code> — register it by hand in the same file. The version is a literal; Maven 4 does not interpolate <code>.mvn/extensions.xml</code>.</p>
  <div class="source">
   <pre class="prettyprint" copy-to-clipboard=""><code>&lt;extensions&gt;
     &lt;extension&gt;
         &lt;groupId&gt;network.ike.tooling&lt;/groupId&gt;
-        &lt;artifactId&gt;ike-workspace-extension&lt;/artifactId&gt;
-        &lt;version&gt;4&lt;/version&gt;
-    &lt;/extension&gt;
-    &lt;extension&gt;
-        &lt;groupId&gt;network.ike.tooling&lt;/groupId&gt;
         &lt;artifactId&gt;ike-version-management-extension&lt;/artifactId&gt;
-        &lt;version&gt;1&lt;/version&gt;
+        &lt;version&gt;11&lt;/version&gt;
     &lt;/extension&gt;
 &lt;/extensions&gt;</code></pre>
  </div>
- <p><code>ws:scaffold-init</code> writes both entries into new workspaces. <code>ws:scaffold-publish</code> keeps them in sync. Versions are sourced from properties declared in <code>ike-parent</code> — operators do not maintain them by hand.</p>
 </div>
 <div>
- <h2 id="coordinates"><a href="#coordinates"></a><a id="coordinates"></a>Coordinates</h2>
+ <h2 id="build-and-test"><a href="#build-and-test"></a><a id="build-and-test"></a>Build and test</h2>
  <div class="source">
-  <pre class="prettyprint" copy-to-clipboard=""><code>&lt;dependency&gt;
-    &lt;groupId&gt;network.ike.tooling&lt;/groupId&gt;
-    &lt;artifactId&gt;ike-version-management-extension&lt;/artifactId&gt;
-    &lt;version&gt;1&lt;/version&gt;
-&lt;/dependency&gt;</code></pre>
+  <pre class="prettyprint" copy-to-clipboard=""><code>mvn install</code></pre>
  </div>
- <p>Available from Maven Central.</p>
+ <p>The in-repo suite exercises each rule on Maven 4 API models built through the API builders. The <code>scm-lint-*</code> invoker cases in <code>workspace-reactor-example/integration-tests-example</code> run the released artifact inside a real Maven build.</p>
+</div>
+<div>
+ <h2 id="scope"><a href="#scope"></a><a id="scope"></a>Scope</h2>
+ <p>The extension enforces the convention and nothing else. Version alignment (<code>ws:align</code>), cascade walking (<code>ike:release-cascade</code>) and lint reports (<code>ws:scaffold-draft</code>) live in <code>ike-workspace-maven-plugin</code> and <code>ike-maven-plugin</code>. The dependency surface is the Maven 4 API jars at compile scope, <code>ike-java-support</code> for the shared value types, and SLF4J at provided scope — the core realm supplies it.</p>
+ <p>Versioned independently of the <a href="https://github.com/IKE-Network/ike-platform" class="externalLink">ike-platform</a><sup class="visible-print-inline">[5]</sup> release cadence.</p>
 </div>
 <div>
  <h2 id="tracking"><a href="#tracking"></a><a id="tracking"></a>Tracking</h2>
  <ul>
-  <li><a href="https://github.com/IKE-Network/ike-issues/issues/470" class="externalLink">IKE-Network/ike-issues#470</a><sup class="visible-print-inline">[5]</sup> — the parent epic.</li>
-  <li><a href="https://github.com/IKE-Network/ike-issues/issues/471" class="externalLink">IKE-Network/ike-issues#471</a><sup class="visible-print-inline">[6]</sup> — IKE-VERSIONS.md, the convention standard.</li>
-  <li><a href="https://github.com/IKE-Network/ike-issues/issues/472" class="externalLink">IKE-Network/ike-issues#472</a><sup class="visible-print-inline">[7]</sup> — this extension.</li>
-  <li><a href="https://github.com/IKE-Network/ike-issues/issues/473" class="externalLink">IKE-Network/ike-issues#473</a><sup class="visible-print-inline">[8]</sup> — <code>ike-base-parent</code> ships the alias manifest.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/470" class="externalLink">IKE-Network/ike-issues#470</a><sup class="visible-print-inline">[6]</sup> — the convention.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/471" class="externalLink">IKE-Network/ike-issues#471</a><sup class="visible-print-inline">[7]</sup> — IKE-VERSIONS.md, the standard.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/472" class="externalLink">IKE-Network/ike-issues#472</a><sup class="visible-print-inline">[8]</sup> — this artifact.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/525" class="externalLink">IKE-Network/ike-issues#525</a><sup class="visible-print-inline">[2]</sup> — the typed-marker family.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/526" class="externalLink">IKE-Network/ike-issues#526</a><sup class="visible-print-inline">[9]</sup> — <code>__ALIAS</code> metadata.</li>
+  <li><a href="https://github.com/IKE-Network/ike-issues/issues/1094" class="externalLink">IKE-Network/ike-issues#1094</a><sup class="visible-print-inline">[3]</sup> — fleet-wide registration; retirement of release-time alias baking.</li>
  </ul>
 </div>
 
@@ -259,15 +251,16 @@
 								<ul class="list-unstyled">
 								<li>[1] https://central.sonatype.com/artifact/network.ike.tooling/ike-version-management-extension</li>
 								<li>[2] https://github.com/IKE-Network/ike-issues/issues/525</li>
-								<li>[3] https://github.com/IKE-Network/ike-tooling/blob/main/ike-build-standards/src/main/standards/IKE-VERSIONS.md</li>
-								<li>[4] https://github.com/IKE-Network/ike-platform</li>
-								<li>[5] https://github.com/IKE-Network/ike-issues/issues/470</li>
-								<li>[6] https://github.com/IKE-Network/ike-issues/issues/471</li>
-								<li>[7] https://github.com/IKE-Network/ike-issues/issues/472</li>
-								<li>[8] https://github.com/IKE-Network/ike-issues/issues/473</li>
+								<li>[3] https://github.com/IKE-Network/ike-issues/issues/1094</li>
+								<li>[4] https://github.com/IKE-Network/ike-issues/issues/496</li>
+								<li>[5] https://github.com/IKE-Network/ike-platform</li>
+								<li>[6] https://github.com/IKE-Network/ike-issues/issues/470</li>
+								<li>[7] https://github.com/IKE-Network/ike-issues/issues/471</li>
+								<li>[8] https://github.com/IKE-Network/ike-issues/issues/472</li>
+								<li>[9] https://github.com/IKE-Network/ike-issues/issues/526</li>
 								</ul>
 							</div>
-<div class="date">Date: <strong>2026-08-15 19:10:51 -0700</strong></div>
+<div class="date">Date: <strong>2026-10-30 13:04:52 -0700</strong></div>
 						</div>
 						</div>
 					</div>
@@ -346,7 +339,7 @@
 	<footer class="footer">
 
 		<p class="footer-title" ng-class="{'text-center': $matchMedia.size == 'xs'}">
-			<strong>IKE Version Management Extension 11</strong>
+			<strong>IKE Version Management Extension 12</strong>
 			<span class="hidden-xs">|</span><br class="hidden-sm hidden-md hidden-lg"/>
 			Documentation as of <strong><time datetime="1980-02-01">1980-02-01</time></strong>
 		</p>
